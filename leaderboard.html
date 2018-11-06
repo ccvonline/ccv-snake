@@ -1,0 +1,120 @@
+
+<html>
+    <head>
+       <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+       <script src="leaderboard-api.js"></script>
+
+       <link href="https://fonts.googleapis.com/css?family=Press+Start+2P" rel="stylesheet">
+    </head>
+    
+    <div id="leaderboard">
+        <div class="leaderboard-row">
+            <div class="name-box">
+                <p>Name</p>
+            </div>
+
+            <div class="hiscore-box">
+                <p>Hi-Scores</p>
+            </div>
+
+            <div class="campus-box">
+                <p>Campus</p>
+            </div>
+        </div>
+    </div>
+</html>
+
+<style>
+    body {
+        background-color: black;
+    }
+
+    p {
+        font-family: 'Press Start 2P';
+        text-transform: uppercase;
+        color: white;
+    }
+
+    #leaderboard {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .leaderboard-row {
+        display: flex;
+        border: 1px dashed lightgrey;
+        justify-content: space-between;
+        width: 50%;
+    }
+
+    .name-box {
+        display: flex;
+        margin-left: 25px;
+        flex-grow: 1;
+        min-width: 40%;
+        max-width: 40%;
+    }
+
+    .hiscore-box {
+        border-left: 1px dashed lightgrey;
+        flex-grow: 1;
+        justify-content: center;
+        min-width: 25%;
+        max-width: 25%;
+        display: flex;
+    }
+
+    .campus-box {
+        border-left: 1px dashed lightgrey;
+        flex-grow: 1;
+        justify-content: flex-end;
+        min-width: 30%;
+        max-width: 30%;
+        display: flex;
+        margin-right: 25px;
+    }
+</style>
+
+<script>    
+    $( document ).ready(function() {
+        getScores( parseScores );
+    });
+
+    function parseScores( ) {
+        
+        var leaderList = $("#leaderboard");
+        
+        for( var i = 0; i < gLeaderboardScores.length; i++ ) {
+            
+            var rowColor = "white";
+            if( i == 0 ) {
+                rowColor = "gold";
+            }
+            else if ( (i % 2) != 0 ) {
+                rowColor = "lightgreen";
+            }
+            else {
+                rowColor = "red";
+            }
+
+
+            leaderList.append( "<div class=\"leaderboard-row\">" + 
+                                    "<div class=\"name-box\">" +
+                                        "<p style=\"color: " + rowColor + ";\">" + (i + 1) + "." + "</p>" + 
+                                        "<p style=\"color: " + rowColor + ";\">" + gLeaderboardScores[i].name + "</p>" +
+                                    "</div>" + 
+                                    "<div class=\"hiscore-box\">" +
+                                    "<p style=\"color: " + rowColor + ";\">" + gLeaderboardScores[i].score + "</p>" + 
+                                    "</div>" +
+                                    "<div class=\"campus-box\">" +
+                                    "<p style=\"color: " + rowColor + ";\">" + gLeaderboardScores[i].campus + "</p>" + 
+                                    "</div>" +
+                                "</div>");
+        }
+    }
+
+    function onPostComplete() {
+    }
+</script>

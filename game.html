@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Snake Game</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+        
+        <link href="https://fonts.googleapis.com/css?family=Press+Start+2P" rel="stylesheet">
+
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+        <script type="text/javascript" src="game.js"></script>
+        <script type="text/javascript" src="leaderboard-api.js"></script>
+        <script type="text/javascript" src="button.js"></script>
+        <script type="text/javascript" src="util/font.js"></script>
+        <style>
+            html, body {
+                width:  100%;
+                height: 100%;
+                margin: 0px;
+                padding: 0px;
+                overflow: hidden;
+            }
+        </style>
+    </head>
+
+    <body style="background-color: green;">
+        <div style="background-color: white; position: absolute;" id="canvasWrapper">
+            <canvas id="menuCanvas" style="display: none;"></canvas>
+            <canvas id="hudCanvas" style="display: none;"></canvas>
+            <canvas id="gameCanvas" style="display: none;"></canvas>
+        </div>
+
+        <div id="hiscoreSubmit">
+            <div>
+                <p>Submit Your Hi-Score!</p>
+                <p>Score: <span id="playerScore"></span> Points</p>
+                <p>Enter Your Initials</p>
+            </div>
+            <div id="input-fields">
+                <input id="initialOne" type="text" maxlength="1" required/>
+                <input id="initialTwo" type="text" maxlength="1" required/>
+                <input id="initialThree" type="text" maxlength="1" required/>
+            </div>
+
+            <div id="select-campus">
+                <div>
+                    <p>Pick Your Campus</p>
+                </div>
+                <select id="playerCampus">
+                    <option value="Anthem">Anthem</option>
+                    <option value="Avondale">Avondale</option>
+                    <option value="Chandler">Chandler</option>
+                    <option value="East Valley">East Valley</option>
+                    <option value="Midtown Phoenix">Midtown Phoenix</option>
+                    <option value="North Phoenix">North Phoenix</option>
+                    <option value="Peoria">Peoria</option>
+                    <option value="Scottsdale">Scottsdale</option>
+                    <option value="Surprise">Surprise</option>
+                </select>
+            </div>
+
+            <div id="input-buttons">
+                <button onclick="onSubmitHiscore()">Submit</button>
+                <button onclick="onCancelHiscore()">Cancel</button>
+            </div>
+        </div>
+    </body>
+</html>
+
+<style>
+    #hiscoreSubmit{
+        visibility: hidden;
+        background-color: darkblue;
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+
+    #hiscoreSubmit p {
+        font-family: 'Press Start 2P';
+        color: white;
+        text-transform: uppercase;
+    }
+
+    select {
+        font-family: 'Press Start 2P';
+        color: white;
+        text-transform: uppercase;
+        border-radius: 0;
+        background-color: black;
+        border-color: black;
+        height: 40px;
+    }
+
+    #select-campus {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    #input-buttons {
+        margin-top: 25px;
+        width: 75%;
+        display: flex;
+        justify-content: space-around;
+    }
+
+    button {
+        background-color: grey;
+        color: white;
+        font-family: 'Press Start 2P';
+        text-transform: uppercase;
+    }
+
+</style>
