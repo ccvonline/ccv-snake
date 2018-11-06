@@ -16,6 +16,7 @@ const STATE_PLAY = 'PLAY';
 const STATE_WINDDOWN = "WINDDOWN";
 const STATE_GAMEOVER = "GAMEOVER";
 const STATE_SUBMITSCORE = "SUBMITSCORE";
+const STATE_LEADERBOARD = "LEADERBOARD";
 
 // Variables
 let safeWindowWidth = 0;
@@ -34,6 +35,10 @@ let submitHSButton = null;
 let playAgainButton = null;
 let submitHSClicked = false;
 let cancelHSClicked = false;
+let leaderboardViewingDoneClicked = false;
+
+let playGameButton = null;
+let viewHSButton = null;
 
 // Game timer
 let tickTimer = Date.now();
@@ -97,6 +102,7 @@ function tick() {
         case STATE_WINDDOWN: tickWinddown(deltaTime); break;
         case STATE_GAMEOVER: tickGameover(deltaTime); break;
         case STATE_SUBMITSCORE: tickSubmitScore(deltaTime); break;
+        case STATE_LEADERBOARD: tickLeaderboard(deltaTime); break;
     }
 
     // reset all inputs
@@ -205,6 +211,15 @@ function updateSetup(deltaTime) {
 
     // Create food
     createFood();
+
+    // create buttons for start game & view high scores
+    playGameButton = new Button( menuCTX, "black", 5, "green", "PLAY GAME", `"${EIGHT_BIT_FONT_NAME}"`, "18px", "red" );
+    playGameButton.x = (safeWindowWidth - playGameButton.width) / 2;
+    playGameButton.y = 200;
+
+    viewHSButton = new Button( menuCTX, "black", 5, "green", "VIEW HI-SCORES", `"${EIGHT_BIT_FONT_NAME}"`, "18px", "red" );
+    viewHSButton.x = (safeWindowWidth - viewHSButton.width) / 2;
+    viewHSButton.y = 400;
     
     // and now goto the title screen
     gameState = STATE_TITLE;
@@ -227,9 +242,21 @@ function tickTitle(deltaTime) {
 
 function updateTitle(deltaTime) {
 
-    // all update title does is check for the mouse being clicked and change the game state when that happens.
-    if( mouseClickEvt.clicked ) {
+    // wait for the play game button to be clicked
+    if( playGameButton.wasClicked( mouseClickEvt ) ) {
         gameState = STATE_COUNTDOWN;
+    }
+    else if ( viewHSButton.wasClicked( mouseClickEvt ) ) {
+
+        // or let them view the leaderboard
+        gameState = STATE_LEADERBOARD;
+
+        $("#leaderboard").css("visibility", "visible");
+        $("#leaderboard-spinner").css("display", "inline-block");
+
+        $("#canvasWrapper").css("visibility", "hidden");
+        
+        getScores( parseScores );
     }
 }
 
@@ -238,10 +265,9 @@ function renderTitle(deltaTime) {
 
     // render title
     render8bitText( "CCV Snake!", 'black', safeWindowWidth / 2 , 50 );
-    render8bitText( "Tap to play!", 'black', safeWindowHeight / 2, 100 );
 
-    // render the polled mouse position
-    render8bitText( mousePos.x + "," + mousePos.y, 'black', safeWindowWidth / 2, 200 );
+    playGameButton.render( );
+    viewHSButton.render( );
 
     renderDebugInfo( menuCTX );
 }
@@ -367,13 +393,13 @@ function updateWinddown(deltaTime) {
     if( winddownTimer >= 5.00 ) {
         gameState = STATE_GAMEOVER;
 
-        submitHSButton = new Button( menuCTX, "black", 5, "green", "SUBMIT SCORE", `"${EIGHT_BIT_FONT_NAME}"`, "36px", "red" );
+        submitHSButton = new Button( menuCTX, "black", 5, "green", "SUBMIT SCORE", `"${EIGHT_BIT_FONT_NAME}"`, "18px", "red" );
         submitHSButton.x = (safeWindowWidth - submitHSButton.width) / 2;
-        submitHSButton.y = 400;
+        submitHSButton.y = 200;
 
-         playAgainButton = new Button( menuCTX, "black", 5, "green", "PLAY AGAIN", `"${EIGHT_BIT_FONT_NAME}"`, "36px", "red" );
+         playAgainButton = new Button( menuCTX, "black", 5, "green", "PLAY AGAIN", `"${EIGHT_BIT_FONT_NAME}"`, "18px", "red" );
          playAgainButton.x = (safeWindowWidth - playAgainButton.width) / 2;
-         playAgainButton.y = 600;
+         playAgainButton.y = 400;
 
         // reset the timer so that the next time this state is run, the timer is 0 again.
         winddownTimer -= 5.00;
@@ -415,6 +441,7 @@ function updateGameover(deltaTime) {
         
         // goto the submit score screen
         $("#hiscoreSubmit").css("visibility", "visible");
+        $("#canvasWrapper").css("visibility", "hidden");
         $("#playerScore").text(playerScore);
         
         gameState = STATE_SUBMITSCORE;
@@ -468,6 +495,7 @@ function updateSubmitScore(deltaTime) {
 
             // hide the submit screen
             $("#hiscoreSubmit").css("visibility", "hidden");
+            $("#canvasWrapper").css("visibility", "visible");
 
             // post it with their score
             postScore( playerInitials, playerScore, playerCampus, function() {} );
@@ -479,6 +507,7 @@ function updateSubmitScore(deltaTime) {
     else if ( cancelHSClicked ) {
 
         $("#hiscoreSubmit").css("visibility", "hidden");
+        $("#canvasWrapper").css("visibility", "visible");
         gameState = STATE_TITLE;
     }
 }
@@ -489,6 +518,35 @@ function renderSubmitScore( deltaTime ) {
 }
 // ------------
 /* END STATE SUBMIT SCORE */
+
+/* STATE: LEADERBOARD */
+// ------------
+function tickLeaderboard(deltaTime) {
+
+    updateLeaderboard(deltaTime);
+    renderLeaderboard(deltaTime);
+}
+
+function updateLeaderboard(deltaTime) {
+
+    // wait for them to finish viewing
+    if( leaderboardViewingDoneClicked ) {
+        gameState = STATE_TITLE;
+
+        $("#leaderboard").css("visibility", "hidden");
+        $("#canvasWrapper").css("visibility", "visible");
+
+        // reset the leaderboard by removing any row with a .score class
+        $(".score").remove( );
+    }
+}
+
+function renderLeaderboard(deltaTime) {
+    
+    // let the html view do the rendering
+}
+// ------------
+/* END STATE LEADERBOARD */
 
 /*UTILITY*/
 // ------------
@@ -549,6 +607,7 @@ function resetInputEvents() {
     mouseClickEvt.clicked = false;
     submitHSClicked = false;
     cancelHSClicked = false;
+    leaderboardViewingDoneClicked = false;
 }
 
 function render8bitText( renderText, color, posX, posY ) {
@@ -558,7 +617,7 @@ function render8bitText( renderText, color, posX, posY ) {
     let currFont = menuCTX.font;
 
     menuCTX.fillStyle = color;
-    menuCTX.font = `28px "${EIGHT_BIT_FONT_NAME}"`;
+    menuCTX.font = `20px "${EIGHT_BIT_FONT_NAME}"`;
     menuCTX.fillText( renderText, posX, posY );
 
     // restore previous values
@@ -590,6 +649,10 @@ function onSubmitHiscore() {
 
 function onCancelHiscore() {
     cancelHSClicked = true;
+}
+
+function onLeaderboardViewingDone() {
+    leaderboardViewingDoneClicked = true;
 }
 // ------------
 /*END UTILITY*/
