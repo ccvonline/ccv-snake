@@ -857,6 +857,9 @@ function advanceSnake() {
         // ate food, increase score, create new food, and do NOT remove last part of snake
         playerScore += 10;
 
+        // vibrate the device
+        Haptics.vibrate(200);
+
         createFood();
     } else {
         // did not eat food, remove last part of snake to keep it the same length

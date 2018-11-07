@@ -2,7 +2,7 @@
 <html>
     <head>
         <title>Snake Game</title>
-		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no">
         
         <link href="https://fonts.googleapis.com/css?family=Press+Start+2P" rel="stylesheet">
 
@@ -11,18 +11,10 @@
         <script type="text/javascript" src="leaderboard-api.js"></script>
         <script type="text/javascript" src="button.js"></script>
         <script type="text/javascript" src="util/font.js"></script>
-        <style>
-            html, body {
-                width:  100%;
-                height: 100%;
-                margin: 0px;
-                padding: 0px;
-                overflow: hidden;
-            }
-        </style>
+        <script type="text/javascript" src="vendor/haptics.js"></script>
     </head>
 
-    <body style="background-color: green;">
+    <body style="background-color: darkslategrey;">
         <div style="background-color: white; position: absolute;" id="canvasWrapper">
             <canvas id="menuCanvas" style="display: none;"></canvas>
             <canvas id="hudCanvas" style="display: none;"></canvas>
@@ -126,6 +118,15 @@
 </script>
 
 <style>
+     html, body
+     {
+        width: 100%;
+        height: 100%;
+        margin: 0px;
+        padding: 0px;
+        overflow: hidden;
+    }
+
     /* Leaderboard Styling */
     #leaderboard {
         background-color: black;
