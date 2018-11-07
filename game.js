@@ -46,32 +46,23 @@ let tickTimer = Date.now();
 // Game state
 let gameState = STATE_SETUP;
 
-// Snake 
-let playerScore = 0;
-let gameRound = 1;
-let gameSpeed = GAME_SPEED;
-let foodConsumed = 0;
-
-let snake = [
-    {x: 150, y: 150},
-    {x: 140, y: 150},
-    {x: 130, y: 150},
-    {x: 120, y: 150},
-    {x: 110, y: 150},
-];
-
-// Start snake moving in right direction
-let snakeMovementDirection = 'right';
-let snakeChangingDirection = false;
-let snakeDirectionX = 10;
-let snakeDirectionY = 0;
-
+// Game Play
+let gameVariablesSet = false;
+let playerScore = null;
+let gameRound = null;
+let gameSpeed = null;
+let foodConsumed = null;
+let snake = null;
+let snakeMovementDirection = null;
+let snakeChangingDirection = null;
+let snakeDirectionX = null;
+let snakeDirectionY = null;
 let foodX = null;
 let foodY = null;
-
-// HUD Data
 let hudRound = null;
 let hudScore = null;
+let prevTouchMoveX = null;
+let prevTouchMoveY = null;
 
 // Core Methods
 // ------------
@@ -167,7 +158,74 @@ function updateSetup(deltaTime) {
     gameCanvas.height = safeWindowHeight - 30;
     gameCTX = gameCanvas.getContext('2d');
 
-    // Add event listener for keyboard gameplay 
+    // event listener for touch gameplay      
+    gameCanvas.addEventListener('touchmove', function(event) {
+        // only process direction change if game state play and snake is not already changing direction
+        if ( gameState === STATE_PLAY && snakeChangingDirection === false) {
+            event.preventDefault();
+
+            // get the x/y of current touch event
+            const currTouchMoveX = event.changedTouches[0].screenX;
+            const currTouchMoveY = event.changedTouches[0].screenY;
+
+            // threshold is used to control responsiveness
+            // lower number triggers moves faster (if too low, moves will be triggered unintentionally by gamer
+            // higher number triggers moves slower
+            const threshold =  25;
+
+            // set prevTouchMove X/Y if not set
+            if (!prevTouchMoveX) {
+                prevTouchMoveX = currTouchMoveX;
+            }
+            if (!prevTouchMoveY) {
+                prevTouchMoveY = currTouchMoveY;
+            }
+
+            // check if currTouchMove is less than or greater than prevTouchMove + or - threshold (this implies movement direction)
+            // check is done for both X and Y
+            if (currTouchMoveX >= prevTouchMoveX + threshold) {
+                // move snake right if snake is not already moving right or left
+                if (snakeMovementDirection !== 'left' || snakeMovementDirection !== 'right') {
+                    changeDirection('right');
+                }
+                
+                // reset prevTouchMoveX / Y (so we dont trigger movement in another direction sooner than expected)
+                prevTouchMoveX = currTouchMoveX;
+                prevTouchMoveY = currTouchMoveY;
+            } else if (currTouchMoveX <= prevTouchMoveX - threshold) {
+                // move snake left if snake is not already moving left or right
+                if (snakeMovementDirection !== 'right' || snakeMovementDirection !== 'left') {
+                    changeDirection('left');
+                }
+                
+                // reset prevTouchMoveX / Y (so we dont trigger movement in another direction sooner than expected)
+                prevTouchMoveX = currTouchMoveX;
+                prevTouchMoveY = currTouchMoveY;
+            }
+
+            if (currTouchMoveY >= prevTouchMoveY + threshold) {
+                // move snake down if snake is not already moving down or up
+                if (snakeMovementDirection !== 'up' || snakeMovementDirection !== 'down') {
+                    changeDirection('down');
+                }
+                
+                // reset prevTouchMoveX / Y (so we dont trigger movement in another direction sooner than expected)
+                prevTouchMoveY = currTouchMoveY;
+                prevTouchMoveX = currTouchMoveX;
+            } else if (currTouchMoveY <= prevTouchMoveY - threshold) {
+                // move snake up if snake is not already moving up or down
+                if (snakeMovementDirection !== 'down' || snakeMovementDirection !== 'up') {
+                    changeDirection('up');
+                }
+                
+                // reset prevTouchMoveX / Y (so we dont trigger movement in another direction sooner than expected)
+                prevTouchMoveY = currTouchMoveY;
+                prevTouchMoveX = currTouchMoveX;
+            }
+        }
+    }, false);
+
+    // event listener for keyboard gameplay 
     // TODO: remove after debugging is done?
     document.addEventListener('keydown', function(e) {   
         // Only act on key if in PLAY state
@@ -208,9 +266,6 @@ function updateSetup(deltaTime) {
             }
         }
     });
-
-    // Create food
-    createFood();
 
     // create buttons for start game & view high scores
     playGameButton = new Button( menuCTX, "black", 5, "green", "PLAY GAME", `"${EIGHT_BIT_FONT_NAME}"`, "18px", "red" );
@@ -288,10 +343,15 @@ function tickCountdown(deltaTime) {
 
 function updateCountdown(deltaTime) {
 
-    // force game starting values
-    playerScore = 0;
-    gameRound = 1;
-    gameSpeed = GAME_SPEED
+    // set game starting values if not already set
+    if (gameVariablesSet !== true) {
+        setDefaultGameVariables();
+    }
+
+    // create food if its not created
+    if (!foodX || !foodY) {
+        createFood();
+    }
 
     // do the 3...2...1 thang
     countdownTimer -= deltaTime;
@@ -447,9 +507,11 @@ function updateGameover(deltaTime) {
         gameState = STATE_SUBMITSCORE;
     }
     else if ( playAgainButton.wasClicked( mouseClickEvt ) ) {
-        
-         // just go back to the title
-         gameState = STATE_TITLE;
+        // clear game variables
+        clearGameVariables();
+
+        // just go back to the title
+        gameState = STATE_TITLE;
     }
 }
 
@@ -500,6 +562,9 @@ function updateSubmitScore(deltaTime) {
             // post it with their score
             postScore( playerInitials, playerScore, playerCampus, function() {} );
 
+            // clear game variables
+            clearGameVariables();
+
             // go back to the title screen
             gameState = STATE_TITLE;
         }
@@ -508,6 +573,9 @@ function updateSubmitScore(deltaTime) {
 
         $("#hiscoreSubmit").css("visibility", "hidden");
         $("#canvasWrapper").css("visibility", "visible");
+        // clear game variables
+        clearGameVariables();
+
         gameState = STATE_TITLE;
     }
 }
@@ -531,6 +599,9 @@ function updateLeaderboard(deltaTime) {
 
     // wait for them to finish viewing
     if( leaderboardViewingDoneClicked ) {
+        // clear game variables
+        clearGameVariables();
+
         gameState = STATE_TITLE;
 
         $("#leaderboard").css("visibility", "hidden");
@@ -660,6 +731,55 @@ function onLeaderboardViewingDone() {
 /*GAME UTILITY*/
 // TODO: Should these just be in utility?
 // ------------
+
+// Set default values of game variables
+function setDefaultGameVariables() {
+    playerScore = 0;
+    gameRound = 1;
+    gameSpeed = GAME_SPEED
+    foodConsumed = 0;
+    snake = [
+        {x: 150, y: 150},
+        {x: 140, y: 150},
+        {x: 130, y: 150},
+        {x: 120, y: 150},
+        {x: 110, y: 150},
+    ];
+    snakeMovementDirection = 'right';
+    snakeChangingDirection = false;
+    snakeDirectionX = 10;
+    snakeDirectionY = 0;
+    foodX = null;
+    foodY = null;
+    hudRound = null;
+    hudScore = null;
+    prevTouchMoveX = null;
+    prevTouchMoveY = null;
+
+    gameVariablesSet = true;
+}
+
+// clear game variables
+function clearGameVariables() {
+    // Game Play
+    gameVariablesSet = false;
+    playerScore = null;
+    gameRound = null;
+    gameSpeed = null;
+    foodConsumed = null;
+    snake = null;
+    snakeMovementDirection = null;
+    snakeChangingDirection = null;
+    snakeDirectionX = null;
+    snakeDirectionY = null;
+    foodX = null;
+    foodY = null;
+    hudRound = null;
+    hudScore = null;
+    prevTouchMoveX = null;
+    prevTouchMoveY = null;
+}
+
 // Update HUD data
 function updateHUD() {
 
