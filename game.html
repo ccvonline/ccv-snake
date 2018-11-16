@@ -15,7 +15,7 @@
     </head>
 
     <body style="background-color: darkslategrey;">
-        <div style="background-color: white; position: absolute;" id="canvasWrapper">
+        <div style="position: absolute;" id="canvasWrapper">
             <canvas id="menuCanvas" style="display: none;"></canvas>
             <canvas id="hudCanvas" style="display: none;"></canvas>
             <canvas id="gameCanvas" style="display: none;"></canvas>
@@ -125,6 +125,11 @@
         margin: 0px;
         padding: 0px;
         overflow: hidden;
+    }
+
+    body {
+        background-repeat: no-repeat;
+        background-size: 100% 100%;
     }
 
     /* Leaderboard Styling */

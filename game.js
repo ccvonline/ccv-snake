@@ -1,7 +1,5 @@
 // Constants
-const GAME_SPEED = 500;
-const CANVAS_BORDER_COLOR = 'black';
-const CANVAS_BACKGROUND_COLOR = 'white';
+const GAME_SPEED = 200;
 const SNAKE_COLOR = 'lightgreen';
 const SNAKE_BORDER_COLOR = 'darkgreen';
 const FOOD_COLOR = 'red';
@@ -46,6 +44,13 @@ let tickTimer = Date.now();
 // Game state
 let gameState = STATE_SETUP;
 
+// Image Assets
+let snakeImages = {};
+let foodImages = {};
+let candyImages = {};
+let giftImages = {};
+let currencyImages = {};
+
 // Game Play
 let gameVariablesSet = false;
 let playerScore = null;
@@ -75,21 +80,14 @@ function tick() {
     // update our core game timer. Delta Time is the time elapsed since the last tick
     let deltaTime = updateTimer();
 
+    // set the background image based on game state - TODO: is this the correct spot for this?
+    setBackgroundImage( gameState );
+
     switch( gameState ) {
         case STATE_SETUP: tickSetup(deltaTime); break;
-        case STATE_TITLE: {
-            // ensure menu canvas is displayed and hud and game canvas are hidden
-            displayMenu();
-            tickTitle(deltaTime); 
-            break;
-        } 
+        case STATE_TITLE: tickTitle(deltaTime); break;
         case STATE_COUNTDOWN: tickCountdown(deltaTime); break;
-        case STATE_PLAY: { 
-            // hide menu canvas and display hud and game canvas
-            displayGame();
-            tickPlay(deltaTime); 
-            break;
-        }
+        case STATE_PLAY: tickPlay(deltaTime); break;
         case STATE_WINDDOWN: tickWinddown(deltaTime); break;
         case STATE_GAMEOVER: tickGameover(deltaTime); break;
         case STATE_SUBMITSCORE: tickSubmitScore(deltaTime); break;
@@ -111,17 +109,26 @@ function tickSetup(deltaTime) {
 }
 
 function updateSetup(deltaTime) {
+    // start loading images 
+    // TODO: Do we need any kind of check that doesnt load the game until the assets are loaded? 
+    // --put at start so it has greatest amount of time to load, not sure if correct or needed
+    loadGamePlayImages();
 
     // setup the bounds and legal position for the game canvases
-    let canvasSafeZoneWidth = window.innerWidth * .05;
-    let canvasSafeZoneHeight = window.innerHeight * .05;
+    // .0333 % is right/left border size relative to Jose's game level background width
+    // left border: 37px, right border: 43px;
+    // (i think we need him to recut a background with equal right/left borders
+    // .0327 is top/bottom border size relative to the background height
+    // tob/bottom border size: 54px;
+    let canvasSafeZoneWidth = window.innerWidth * .0333;
+    let canvasSafeZoneHeight = window.innerHeight * .0327;
 
     safeWindowWidth = window.innerWidth - canvasSafeZoneWidth;
     safeWindowHeight = window.innerHeight - canvasSafeZoneHeight;
 
     let canvasDiv = document.getElementById('canvasWrapper');
-    canvasDiv.style.left = (canvasSafeZoneWidth / 2) + "px";
-    canvasDiv.style.top = (canvasSafeZoneHeight / 2) + "px";
+    canvasDiv.style.left = (canvasSafeZoneWidth) + "px";
+    canvasDiv.style.top = (canvasSafeZoneHeight) + "px";
 
 
     // create/setup menu canvas
@@ -147,15 +154,25 @@ function updateSetup(deltaTime) {
 
     // create/setup hud canvas
     hudCanvas = document.getElementById('hudCanvas');
-    hudCanvas.width = safeWindowWidth;
-    hudCanvas.height = 30;
+    hudCanvas.width = safeWindowWidth - canvasSafeZoneWidth;
+    // .0442 % is hud size relative to Jose's game level background height
+    hudCanvas.height = window.innerHeight * .0442;
 
     hudCTX = hudCanvas.getContext('2d');
 
     // create/setup game canvas
     gameCanvas = document.getElementById('gameCanvas');
-    gameCanvas.width = safeWindowWidth;
-    gameCanvas.height = safeWindowHeight - 30;
+
+    // REMOVE
+    // 54 top / bottom border
+    // 1650 height
+    // 1110 width 
+    // 43 right border
+    // 37 left border
+    // do these need to be the same?!?!
+
+    gameCanvas.width = safeWindowWidth - canvasSafeZoneWidth;
+    gameCanvas.height = safeWindowHeight - canvasSafeZoneHeight - hudCanvas.height;
     gameCTX = gameCanvas.getContext('2d');
 
     // event listener for touch gameplay      
@@ -185,7 +202,7 @@ function updateSetup(deltaTime) {
             // check is done for both X and Y
             if (currTouchMoveX >= prevTouchMoveX + threshold) {
                 // move snake right if snake is not already moving right or left
-                if (snakeMovementDirection !== 'left' || snakeMovementDirection !== 'right') {
+                if (snakeMovementDirection !== 'left' && snakeMovementDirection !== 'right') {
                     changeDirection('right');
                 }
                 
@@ -194,7 +211,7 @@ function updateSetup(deltaTime) {
                 prevTouchMoveY = currTouchMoveY;
             } else if (currTouchMoveX <= prevTouchMoveX - threshold) {
                 // move snake left if snake is not already moving left or right
-                if (snakeMovementDirection !== 'right' || snakeMovementDirection !== 'left') {
+                if (snakeMovementDirection !== 'right' && snakeMovementDirection !== 'left') {
                     changeDirection('left');
                 }
                 
@@ -205,7 +222,7 @@ function updateSetup(deltaTime) {
 
             if (currTouchMoveY >= prevTouchMoveY + threshold) {
                 // move snake down if snake is not already moving down or up
-                if (snakeMovementDirection !== 'up' || snakeMovementDirection !== 'down') {
+                if (snakeMovementDirection !== 'up' && snakeMovementDirection !== 'down') {
                     changeDirection('down');
                 }
                 
@@ -214,7 +231,7 @@ function updateSetup(deltaTime) {
                 prevTouchMoveX = currTouchMoveX;
             } else if (currTouchMoveY <= prevTouchMoveY - threshold) {
                 // move snake up if snake is not already moving up or down
-                if (snakeMovementDirection !== 'down' || snakeMovementDirection !== 'up') {
+                if (snakeMovementDirection !== 'down' && snakeMovementDirection !== 'up') {
                     changeDirection('up');
                 }
                 
@@ -270,7 +287,7 @@ function updateSetup(deltaTime) {
     // create buttons for start game & view high scores
     playGameButton = new Button( menuCTX, "black", 5, "green", "PLAY GAME", `"${EIGHT_BIT_FONT_NAME}"`, "18px", "red" );
     playGameButton.x = (safeWindowWidth - playGameButton.width) / 2;
-    playGameButton.y = 200;
+    playGameButton.y = 300;
 
     viewHSButton = new Button( menuCTX, "black", 5, "green", "VIEW HI-SCORES", `"${EIGHT_BIT_FONT_NAME}"`, "18px", "red" );
     viewHSButton.x = (safeWindowWidth - viewHSButton.width) / 2;
@@ -297,6 +314,11 @@ function tickTitle(deltaTime) {
 
 function updateTitle(deltaTime) {
 
+    // ensure menu canvas is displayed and hud and game canvas are hidden
+    $('#menuCanvas').css('display','block');
+    $('#hudCanvas').css('display','none');
+    $('#gameCanvas').css('display','none');
+
     // wait for the play game button to be clicked
     if( playGameButton.wasClicked( mouseClickEvt ) ) {
         gameState = STATE_COUNTDOWN;
@@ -317,9 +339,6 @@ function updateTitle(deltaTime) {
 
 function renderTitle(deltaTime) {
     clearCanvas( menuCTX, menuCanvas );
-
-    // render title
-    render8bitText( "CCV Snake!", 'black', safeWindowWidth / 2 , 50 );
 
     playGameButton.render( );
     viewHSButton.render( );
@@ -352,7 +371,7 @@ function updateCountdown(deltaTime) {
     if (!foodX || !foodY) {
         createFood();
     }
-
+    
     // do the 3...2...1 thang
     countdownTimer -= deltaTime;
     if( countdownTimer <= 0 ) {
@@ -402,6 +421,12 @@ function tickPlay(deltaTime) {
 }
 
 function updatePlay(deltaTime) {
+
+    // ensure game canvas and hud are displayed and menu canvas is hid
+    $('#hudCanvas').css('display','block');
+    $('#gameCanvas').css('display','block');
+    $('#menuCanvas').css('display','none');
+
 
     advanceSnake();
 
@@ -455,11 +480,11 @@ function updateWinddown(deltaTime) {
 
         submitHSButton = new Button( menuCTX, "black", 5, "green", "SUBMIT SCORE", `"${EIGHT_BIT_FONT_NAME}"`, "18px", "red" );
         submitHSButton.x = (safeWindowWidth - submitHSButton.width) / 2;
-        submitHSButton.y = 200;
+        submitHSButton.y = 400;
 
          playAgainButton = new Button( menuCTX, "black", 5, "green", "PLAY AGAIN", `"${EIGHT_BIT_FONT_NAME}"`, "18px", "red" );
          playAgainButton.x = (safeWindowWidth - playAgainButton.width) / 2;
-         playAgainButton.y = 400;
+         playAgainButton.y = 500;
 
         // reset the timer so that the next time this state is run, the timer is 0 again.
         winddownTimer -= 5.00;
@@ -471,7 +496,10 @@ function renderWinddown(deltaTime) {
     // wait 2s before rendering winddown (so player sees where they failed at)
     if (winddownTimer >= 2.00) {
 
-        displayMenu();
+        // ensure menu canvas is displayed and hud and game canvas are hidden
+        $('#menuCanvas').css('display','block');
+        $('#hudCanvas').css('display','none');
+        $('#gameCanvas').css('display','none');
 
         clearCanvas( menuCTX, menuCanvas );
 
@@ -519,8 +547,7 @@ function renderGameover(deltaTime) {
 
     clearCanvas( menuCTX, menuCanvas );
 
-    render8bitText( "Game Over", 'black', safeWindowWidth / 2, 50 );
-    render8bitText( "Your Score: " + playerScore, 'black', safeWindowWidth / 2, 100 );
+    render8bitText( "Your Score: " + playerScore, 'black', safeWindowWidth / 2, 300 );
     
     submitHSButton.render(menuCTX);
     playAgainButton.render(menuCTX);
@@ -625,8 +652,19 @@ function clearCanvas( ctx, canvas ) {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    ctx.strokeStyle = 0;
-    ctx.strokeRect(0, 0, canvas.width, canvas.height);
+}
+
+function setBackgroundImage( currGameState ) {
+    let backgroundUrl = '';
+
+    switch( currGameState ) {
+        case STATE_PLAY: backgroundUrl = "url('./assets/background-game-level.jpg')"; break;
+        case STATE_WINDDOWN: backgroundUrl = "url('./assets/background-game-level.jpg')"; break;
+        case STATE_GAMEOVER: backgroundUrl = "url('./assets/background-game-over.jpg')"; break;
+        default: backgroundUrl = "url('./assets/background-title-screen.jpg')"; break;
+    }
+
+    $('body').css('background-image',backgroundUrl);
 }
 
 function renderDebugInfo( ctx ) {
@@ -696,24 +734,6 @@ function render8bitText( renderText, color, posX, posY ) {
     menuCTX.font = currFont;
 }
 
-function displayMenu() {
-
-    // display menu
-    $('#menuCanvas').css('display','block');
-    // hide hud and game canvas
-    $('#hudCanvas').css('display','none');
-    $('#gameCanvas').css('display','none');
-}
-
-function displayGame() {
-
-    // hide menu canvas
-    $('#menuCanvas').css('display','none');
-    // display hud and game canvas
-    $('#hudCanvas').css('display','block');
-    $('#gameCanvas').css('display','block');
-}
-
 function onSubmitHiscore() {
     submitHSClicked = true;
 }
@@ -739,15 +759,15 @@ function setDefaultGameVariables() {
     gameSpeed = GAME_SPEED
     foodConsumed = 0;
     snake = [
-        {x: 150, y: 150},
-        {x: 140, y: 150},
-        {x: 130, y: 150},
-        {x: 120, y: 150},
-        {x: 110, y: 150},
+        {x: 140, y: 140},
+        {x: 120, y: 140},
+        {x: 100, y: 140},
+        {x: 80, y: 140},
+        {x: 60, y: 140},
     ];
     snakeMovementDirection = 'right';
     snakeChangingDirection = false;
-    snakeDirectionX = 10;
+    snakeDirectionX = 20;
     snakeDirectionY = 0;
     foodX = null;
     foodY = null;
@@ -791,10 +811,10 @@ function updateHUD() {
 function createFood() {
 
     // Generate food (inside playing field)
-    foodX = randomTen(0, gameCanvas.width);
-    foodY = randomTen(0, gameCanvas.height);
+    foodX = randomTwenty(0, gameCanvas.width);
+    foodY = randomTwenty(0, gameCanvas.height);
 
-    // Check if food was created where the snake is, if so try the creation
+    // Check if food was created where the snake is, if so try the creation again
     snake.forEach(function isFoodOnSnake(part) {
         const foodIsOnSnake = part.x == foodX && part.y == foodY;
 
@@ -819,17 +839,33 @@ function drawHUD() {
 // Draw snake
 function drawSnake() {
 
-    snake.forEach(drawSnakePart);
+    for (i = 0; i < snake.length; i++) {
+        if ( i === 0 ) {
+            drawSnakeHead( snake[i] );
+        } else if ( i % 2 == 0) {
+            drawSnakeBodyPart( snake[i], false );
+        } else {
+            drawSnakeBodyPart( snake[i], true );
+        }
+    }
+//    snake.forEach(drawSnakePart);
+}
+
+// Draw snake head
+function drawSnakeHead(snakePart) {
+
+    gameCTX.drawImage(snakeImages['snake-head'], snakePart.x, snakePart.y, 20, 20);
+
 }
 
 // Draw snake part
-function drawSnakePart(snakePart) {
+function drawSnakeBodyPart(snakePart, alternate) {
 
-    gameCTX.fillStyle = SNAKE_COLOR;
-    gameCTX.strokeStyle = SNAKE_BORDER_COLOR;
-
-    gameCTX.fillRect(snakePart.x, snakePart.y, 10, 10);
-    gameCTX.strokeRect(snakePart.x, snakePart.y, 10, 10);
+    if ( !alternate ) {
+        gameCTX.drawImage(snakeImages['snake-body-a'], snakePart.x, snakePart.y, 20, 20);
+    } else {
+        gameCTX.drawImage(snakeImages['snake-body-b'], snakePart.x, snakePart.y, 20, 20);
+    }
 }
 
 // Draw food
@@ -837,8 +873,8 @@ function drawFood() {
 
     gameCTX.fillStyle = FOOD_COLOR;
     gameCTX.strokeStyle = FOOD_BORDER_COLOR;
-    gameCTX.fillRect(foodX, foodY, 10, 10);
-    gameCTX.strokeRect(foodX, foodY, 10, 10);
+    gameCTX.fillRect(foodX, foodY, 20, 20);
+    gameCTX.strokeRect(foodX, foodY, 20, 20);
 }
 
 // Advance the snake forward
@@ -922,26 +958,26 @@ function changeDirection(direction) {
         switch(direction) {
             case 'left': {
                 snakeMovementDirection = 'left';
-                snakeDirectionX = -10;
+                snakeDirectionX = -20;
                 snakeDirectionY = 0;
                 break;
             }
             case 'right': {
                 snakeMovementDirection = 'right';
-                snakeDirectionX = 10;
+                snakeDirectionX = 20;
                 snakeDirectionY = 0;
                 break;
             }
             case 'up': {
                 snakeMovementDirection = 'up';
                 snakeDirectionX = 0;
-                snakeDirectionY = -10; 
+                snakeDirectionY = -20; 
                 break;
             }
             case 'down': {
                 snakeMovementDirection = 'down';
                 snakeDirectionX = 0;
-                snakeDirectionY = 10;
+                snakeDirectionY = 20;
                 break;
             }
             default: {
@@ -952,9 +988,59 @@ function changeDirection(direction) {
 }
 
 // Generate a random number
-function randomTen(min, max) {
+function randomTwenty(min, max) {
 
-    return Math.round((Math.random() * (max-min) + min) /10) * 10;
+    return min + ( 20 * Math.floor(Math.random() * ( max-min ) / 20 ) );
+
 }
+
+// Load game asset images into image arrays
+function loadGamePlayImages() {
+
+        // snake
+        loadGamePlayImage(snakeImages, 'snake-head');
+        loadGamePlayImage(snakeImages, 'snake-body-a');
+        loadGamePlayImage(snakeImages, 'snake-body-b');
+
+        // food
+        loadGamePlayImage( foodImages, 'food-apple-green');
+        loadGamePlayImage( foodImages, 'food-apple-red');
+        loadGamePlayImage( foodImages, 'food-cherry');
+        loadGamePlayImage( foodImages, 'food-cookie');
+        loadGamePlayImage( foodImages, 'food-lemon');
+        loadGamePlayImage( foodImages, 'food-meat');
+        loadGamePlayImage( foodImages, 'food-strawberry');
+
+        // candy
+        loadGamePlayImage( candyImages, 'candy-cane-blue');
+        loadGamePlayImage( candyImages, 'candy-cane-green');
+        loadGamePlayImage( candyImages, 'candy-cane-grinch');
+        loadGamePlayImage( candyImages, 'candy-cane-orange');
+        loadGamePlayImage( candyImages, 'candy-cane-pink');
+        loadGamePlayImage( candyImages, 'candy-cane-purple');
+        loadGamePlayImage( candyImages, 'candy-cane-red');
+
+        // gift
+        loadGamePlayImage( giftImages, 'gift-green');
+        loadGamePlayImage( giftImages, 'gift-purple');
+        loadGamePlayImage( giftImages, 'gift-red');
+        loadGamePlayImage( giftImages, 'gift-yellow');
+        
+        // currency
+        loadGamePlayImage( currencyImages, 'currency-coin-gold');
+        loadGamePlayImage( currencyImages, 'currency-coin-silver');
+        loadGamePlayImage( currencyImages, 'currency-rubby-blue');
+        loadGamePlayImage( currencyImages, 'currency-rubby-green');
+        loadGamePlayImage( currencyImages, 'currency-rubby-orange');
+        loadGamePlayImage( currencyImages, 'currency-rubby-red');
+}
+
+// load image into imageArray
+function loadGamePlayImage( imageArray, name ) {
+
+    imageArray[name] = new Image();
+    imageArray[name].src = "./assets/" + name + ".png";
+}
+
 // ------------
 /*END GAME UTILITY*/
