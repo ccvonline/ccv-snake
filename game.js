@@ -45,11 +45,15 @@ let tickTimer = Date.now();
 let gameState = STATE_SETUP;
 
 // Image Assets
+let buttonImages = {};
 let snakeImages = {};
 let foodImages = {};
 let candyImages = {};
 let giftImages = {};
 let currencyImages = {};
+
+let numLoadedImages = 0;
+let totalImages = 32;
 
 // Game Play
 let gameVariablesSet = false;
@@ -66,21 +70,34 @@ let foodX = null;
 let foodY = null;
 let hudRound = null;
 let hudScore = null;
+let currTouchMoveX = null;
+let currTouchMoveY = null;
 let prevTouchMoveX = null;
 let prevTouchMoveY = null;
+
 
 // Core Methods
 // ------------
 $( document ).ready(function() {
+    // load images into arrays for use on the canvas
+    loadImages();
+
+    // start game tick
     setInterval( tick, 33 );
 });
 
 function tick() {
+    // check if all images have been loaded
+    if ( numLoadedImages !== totalImages) {
+        // images not loaded, dont proceed
+        return;
+    }
 
     // update our core game timer. Delta Time is the time elapsed since the last tick
     let deltaTime = updateTimer();
 
-    // set the background image based on game state - TODO: is this the correct spot for this?
+    // set the background image based on game state
+    // TODO: is this the correct spot for this?
     setBackgroundImage( gameState );
 
     switch( gameState ) {
@@ -109,18 +126,15 @@ function tickSetup(deltaTime) {
 }
 
 function updateSetup(deltaTime) {
-    // start loading images 
-    // TODO: Do we need any kind of check that doesnt load the game until the assets are loaded? 
-    // --put at start so it has greatest amount of time to load, not sure if correct or needed
-    loadGamePlayImages();
-
     // setup the bounds and legal position for the game canvases
+    // 1110 - game level background image width
     // .0333 % is right/left border size relative to Jose's game level background width
     // left border: 37px, right border: 43px;
     // (i think we need him to recut a background with equal right/left borders
+    let canvasSafeZoneWidth = window.innerWidth * .0333;
+    // 1650 - game level background image height
     // .0327 is top/bottom border size relative to the background height
     // tob/bottom border size: 54px;
-    let canvasSafeZoneWidth = window.innerWidth * .0333;
     let canvasSafeZoneHeight = window.innerHeight * .0327;
 
     safeWindowWidth = window.innerWidth - canvasSafeZoneWidth;
@@ -130,11 +144,10 @@ function updateSetup(deltaTime) {
     canvasDiv.style.left = (canvasSafeZoneWidth) + "px";
     canvasDiv.style.top = (canvasSafeZoneHeight) + "px";
 
-
     // create/setup menu canvas
     menuCanvas = document.getElementById('menuCanvas');
-    menuCanvas.width = safeWindowWidth;
-    menuCanvas.height = safeWindowHeight;
+    menuCanvas.width = safeWindowWidth - canvasSafeZoneWidth;
+    menuCanvas.height = safeWindowHeight - canvasSafeZoneHeight;
 
     menuCTX = menuCanvas.getContext('2d');
     menuCTX.textAlign = 'center';
@@ -163,31 +176,24 @@ function updateSetup(deltaTime) {
     // create/setup game canvas
     gameCanvas = document.getElementById('gameCanvas');
 
-    // REMOVE
-    // 54 top / bottom border
-    // 1650 height
-    // 1110 width 
-    // 43 right border
-    // 37 left border
-    // do these need to be the same?!?!
-
     gameCanvas.width = safeWindowWidth - canvasSafeZoneWidth;
     gameCanvas.height = safeWindowHeight - canvasSafeZoneHeight - hudCanvas.height;
     gameCTX = gameCanvas.getContext('2d');
 
     // event listener for touch gameplay      
     gameCanvas.addEventListener('touchmove', function(event) {
+
         // only process direction change if game state play and snake is not already changing direction
         if ( gameState === STATE_PLAY && snakeChangingDirection === false) {
             event.preventDefault();
 
             // get the x/y of current touch event
-            const currTouchMoveX = event.changedTouches[0].screenX;
-            const currTouchMoveY = event.changedTouches[0].screenY;
+            currTouchMoveX = event.changedTouches[0].screenX;
+            currTouchMoveY = event.changedTouches[0].screenY;
 
             // threshold is used to control responsiveness
-            // lower number triggers moves faster (if too low, moves will be triggered unintentionally by gamer
-            // higher number triggers moves slower
+            // lower number triggers move faster (if too low, move will be triggered unintentionally by gamer)
+            // higher number triggers move slower
             const threshold =  25;
 
             // set prevTouchMove X/Y if not set
@@ -242,8 +248,7 @@ function updateSetup(deltaTime) {
         }
     }, false);
 
-    // event listener for keyboard gameplay 
-    // TODO: remove after debugging is done?
+    // event listener for keyboard gameplay (for debugging)
     document.addEventListener('keydown', function(e) {   
         // Only act on key if in PLAY state
         if ( gameState === STATE_PLAY) {
@@ -251,7 +256,7 @@ function updateSetup(deltaTime) {
                 // left key
                 case 37: {
                     // ensure snake is not traveling right
-                    if (snakeMovementDirection !== 'right') {
+                    if (snakeMovementDirection !== 'right' && snakeMovementDirection !== 'left') {
                         changeDirection('left');
                     }
                     break;
@@ -259,7 +264,7 @@ function updateSetup(deltaTime) {
                 // right key
                 case 39: {
                     // ensure snake is not traveling left
-                    if (snakeMovementDirection !== 'left') {
+                    if (snakeMovementDirection !== 'left' && snakeMovementDirection !== 'right') {
                         changeDirection('right');
                     }
                     break;
@@ -267,7 +272,7 @@ function updateSetup(deltaTime) {
                 // up key
                 case 38: {
                     // ensure snake is not traveling down
-                    if (snakeMovementDirection !== 'down') {
+                    if (snakeMovementDirection !== 'up' && snakeMovementDirection !== 'down') {
                         changeDirection('up');
                     }
                     break;
@@ -275,7 +280,7 @@ function updateSetup(deltaTime) {
                 // down key
                 case 40: {
                     // ensure snake is not traveling up
-                    if (snakeMovementDirection !== 'up') {
+                    if (snakeMovementDirection !== 'down' && snakeMovementDirection !== 'up') {
                         changeDirection('down');
                     }
                     break;
@@ -284,14 +289,15 @@ function updateSetup(deltaTime) {
         }
     });
 
-    // create buttons for start game & view high scores
-    playGameButton = new Button( menuCTX, "black", 5, "green", "PLAY GAME", `"${EIGHT_BIT_FONT_NAME}"`, "18px", "red" );
-    playGameButton.x = (safeWindowWidth - playGameButton.width) / 2;
-    playGameButton.y = 300;
+    // create transparent buttons (rendered under the button images so we can capture the click)
+    // use image dimensions to set width, height, and location
+    playGameButton = new TransparentButton( menuCTX, ( buttonImages['button-play-game'].width / 2.5 ), (buttonImages['button-play-game'].height / 2.5 ) );
+    playGameButton.x = ( menuCanvas.width - ( buttonImages['button-play-game'].width / 2.5 ) ) / 2;
+    playGameButton.y = ( menuCanvas.height / 2 );
 
-    viewHSButton = new Button( menuCTX, "black", 5, "green", "VIEW HI-SCORES", `"${EIGHT_BIT_FONT_NAME}"`, "18px", "red" );
-    viewHSButton.x = (safeWindowWidth - viewHSButton.width) / 2;
-    viewHSButton.y = 400;
+    viewHSButton = new TransparentButton( menuCTX, ( buttonImages['button-view-high-score'].width / 2.5 ), (buttonImages['button-view-high-score'].height / 2.5 ) );
+    viewHSButton.x = ( menuCanvas.width - ( buttonImages['button-view-high-score'].width / 2.5 ) ) / 2;
+    viewHSButton.y = ( menuCanvas.height / 2 ) + 100;
     
     // and now goto the title screen
     gameState = STATE_TITLE;
@@ -343,7 +349,10 @@ function renderTitle(deltaTime) {
     playGameButton.render( );
     viewHSButton.render( );
 
-    renderDebugInfo( menuCTX );
+    menuCTX.drawImage( buttonImages['button-play-game'], ( menuCanvas.width - ( buttonImages['button-play-game'].width / 2.5 ) ) / 2, ( menuCanvas.height / 2), buttonImages['button-play-game'].width / 2.5, buttonImages['button-play-game'].height / 2.5 );
+    menuCTX.drawImage( buttonImages['button-view-high-score'], ( menuCanvas.width - ( buttonImages['button-view-high-score'].width / 2.5 ) ) / 2, ( menuCanvas.height / 2 ) + 100, buttonImages['button-view-high-score'].width / 2.5, buttonImages['button-view-high-score'].height / 2.5 );
+
+    renderMenuDebugInfo( );
 }
 // ------------
 /* END STATE TITLE */
@@ -363,12 +372,12 @@ function tickCountdown(deltaTime) {
 function updateCountdown(deltaTime) {
 
     // set game starting values if not already set
-    if (gameVariablesSet !== true) {
+    if ( gameVariablesSet !== true ) {
         setDefaultGameVariables();
     }
 
     // create food if its not created
-    if (!foodX || !foodY) {
+    if ( !foodX || !foodY ) {
         createFood();
     }
     
@@ -395,7 +404,7 @@ function renderCountdown(deltaTime) {
     // render countdown
     render8bitText( roundedTimer, 'black', safeWindowWidth / 2, safeWindowHeight / 2 );
     
-    renderDebugInfo( menuCTX );
+    renderMenuDebugInfo( );
 }
 // ------------
 /* END STATE COUNTDOWN */
@@ -448,7 +457,7 @@ function renderPlay(deltaTime) {
     drawFood();
     drawHUD();
     
-    //renderDebugInfo( gameCanvas );
+    renderGameDebugInfo( );
 }
 // ------------
 /* END STATE PLAY */
@@ -478,13 +487,14 @@ function updateWinddown(deltaTime) {
     if( winddownTimer >= 5.00 ) {
         gameState = STATE_GAMEOVER;
 
-        submitHSButton = new Button( menuCTX, "black", 5, "green", "SUBMIT SCORE", `"${EIGHT_BIT_FONT_NAME}"`, "18px", "red" );
-        submitHSButton.x = (safeWindowWidth - submitHSButton.width) / 2;
-        submitHSButton.y = 400;
+        // create transparent button to capture clicks
+        submitHSButton = new TransparentButton( menuCTX, ( buttonImages['button-submit-score'].width / 2.25 ), (buttonImages['button-submit-score'].height / 2.25 ) );
+        submitHSButton.x = ( menuCanvas.width - ( buttonImages['button-submit-score'].width / 2.25 ) ) / 2;
+        submitHSButton.y = ( menuCanvas.height / 2 );
 
-         playAgainButton = new Button( menuCTX, "black", 5, "green", "PLAY AGAIN", `"${EIGHT_BIT_FONT_NAME}"`, "18px", "red" );
-         playAgainButton.x = (safeWindowWidth - playAgainButton.width) / 2;
-         playAgainButton.y = 500;
+        playAgainButton = new TransparentButton( menuCTX, ( buttonImages['button-play-again'].width / 2.25 ), (buttonImages['button-play-again'].height / 2.25 ) );
+        playAgainButton.x = ( menuCanvas.width - ( buttonImages['button-play-again'].width / 2.25 ) ) / 2;
+        playAgainButton.y = ( menuCanvas.height / 2 ) + 100;
 
         // reset the timer so that the next time this state is run, the timer is 0 again.
         winddownTimer -= 5.00;
@@ -508,7 +518,7 @@ function renderWinddown(deltaTime) {
         render8bitText( playerScore, 'black', safeWindowWidth / 2, 150 );    
     }
     
-    renderDebugInfo( menuCTX );
+    renderMenuDebugInfo(  );
 }
 // ------------
 /* END STATE WINDDOWN */
@@ -547,12 +557,16 @@ function renderGameover(deltaTime) {
 
     clearCanvas( menuCTX, menuCanvas );
 
-    render8bitText( "Your Score: " + playerScore, 'black', safeWindowWidth / 2, 300 );
+    render8bitText( "Your Score: " + playerScore, 'white', safeWindowWidth / 2, 200 );
     
-    submitHSButton.render(menuCTX);
-    playAgainButton.render(menuCTX);
+    submitHSButton.render( );
+    playAgainButton.render( );
 
-    renderDebugInfo( menuCTX );
+    menuCTX.drawImage( buttonImages['button-submit-score'], ( menuCanvas.width - ( buttonImages['button-submit-score'].width / 2.25 ) ) / 2, ( menuCanvas.height / 2), buttonImages['button-submit-score'].width / 2.25, buttonImages['button-submit-score'].height / 2.25 );
+    menuCTX.drawImage( buttonImages['button-play-again'], ( menuCanvas.width - ( buttonImages['button-play-again'].width / 2.25 ) ) / 2, ( menuCanvas.height / 2) + 100, buttonImages['button-play-again'].width / 2.25, buttonImages['button-play-again'].height / 2.25 );
+
+
+    renderMenuDebugInfo( );
 }
 // ------------
 /* END STATE GAMEOVER */
@@ -609,7 +623,7 @@ function updateSubmitScore(deltaTime) {
 
 function renderSubmitScore( deltaTime ) {
     
-    renderDebugInfo( menuCTX );
+    renderMenuDebugInfo( );
 }
 // ------------
 /* END STATE SUBMIT SCORE */
@@ -658,36 +672,36 @@ function setBackgroundImage( currGameState ) {
     let backgroundUrl = '';
 
     switch( currGameState ) {
-        case STATE_PLAY: backgroundUrl = "url('./assets/background-game-level.jpg')"; break;
-        case STATE_WINDDOWN: backgroundUrl = "url('./assets/background-game-level.jpg')"; break;
-        case STATE_GAMEOVER: backgroundUrl = "url('./assets/background-game-over.jpg')"; break;
-        default: backgroundUrl = "url('./assets/background-title-screen.jpg')"; break;
+        case STATE_PLAY: backgroundUrl = "url('./assets/backgrounds/background-game-level.jpg')"; break;
+        case STATE_WINDDOWN: backgroundUrl = "url('./assets/backgrounds/background-game-level.jpg')"; break;
+        case STATE_GAMEOVER: backgroundUrl = "url('./assets/backgrounds/background-game-over.jpg')"; break;
+        default: backgroundUrl = "url('./assets/backgrounds/background-title-screen.jpg')"; break;
     }
 
     $('body').css('background-image',backgroundUrl);
 }
 
-function renderDebugInfo( ctx ) {
+function renderMenuDebugInfo( ) {
 
-    ctx.fillStyle = 'black';
-    ctx.fillRect( 0, gameCanvas.height - 50, gameCanvas.width, 50 );
+    menuCTX.fillStyle = 'black';
+    menuCTX.fillRect( 0, menuCanvas.height - 50, menuCanvas.width, 50 );
 
     // backup curr values
-    let currFillStyle = ctx.fillStyle;
-    let currFont = ctx.font;
-    let currAllign = ctx.textAlign;
+    let currFillStyle = menuCTX.fillStyle;
+    let currFont = menuCTX.font;
+    let currAllign = menuCTX.textAlign;
 
-    ctx.fillStyle = 'white';
-    ctx.font = "12px Arial";
-    ctx.textAlign = 'left';
+    menuCTX.fillStyle = 'white';
+    menuCTX.font = "12px Arial";
+    menuCTX.textAlign = 'left';
 
-    ctx.fillText( "Debug Info -", 0, gameCanvas.height - 40 );
-    ctx.fillText( "State: " + gameState, 80, gameCanvas.height - 40 );
+    menuCTX.fillText( "Debug Info -", 0, menuCanvas.height - 40 );
+    menuCTX.fillText( "State: " + gameState, 80, menuCanvas.height - 40 );
 
     // restore previous values
-    ctx.fillStyle = currFillStyle;
-    ctx.font = currFont;
-    ctx.textAlign = currAllign;
+    menuCTX.fillStyle = currFillStyle;
+    menuCTX.font = currFont;
+    menuCTX.textAlign = currAllign;
 }
 
 function getMousePos(menuCanvas, evt) {
@@ -995,51 +1009,90 @@ function randomTwenty(min, max) {
 }
 
 // Load game asset images into image arrays
-function loadGamePlayImages() {
+function loadImages() {
+    // buttons
+    loadImage( buttonImages, 'button-play-game');
+    loadImage( buttonImages, 'button-play-again');
+    loadImage( buttonImages, 'button-submit-score');
+    loadImage( buttonImages, 'button-view-high-score');
+    loadImage( buttonImages, 'button-done');
 
-        // snake
-        loadGamePlayImage(snakeImages, 'snake-head');
-        loadGamePlayImage(snakeImages, 'snake-body-a');
-        loadGamePlayImage(snakeImages, 'snake-body-b');
+    // snake
+    loadImage( snakeImages, 'snake-head');
+    loadImage( snakeImages, 'snake-body-a');
+    loadImage( snakeImages, 'snake-body-b');
 
-        // food
-        loadGamePlayImage( foodImages, 'food-apple-green');
-        loadGamePlayImage( foodImages, 'food-apple-red');
-        loadGamePlayImage( foodImages, 'food-cherry');
-        loadGamePlayImage( foodImages, 'food-cookie');
-        loadGamePlayImage( foodImages, 'food-lemon');
-        loadGamePlayImage( foodImages, 'food-meat');
-        loadGamePlayImage( foodImages, 'food-strawberry');
+    // food
+    loadImage( foodImages, 'food-apple-green');
+    loadImage( foodImages, 'food-apple-red');
+    loadImage( foodImages, 'food-cherry');
+    loadImage( foodImages, 'food-cookie');
+    loadImage( foodImages, 'food-lemon');
+    loadImage( foodImages, 'food-meat');
+    loadImage( foodImages, 'food-strawberry');
 
-        // candy
-        loadGamePlayImage( candyImages, 'candy-cane-blue');
-        loadGamePlayImage( candyImages, 'candy-cane-green');
-        loadGamePlayImage( candyImages, 'candy-cane-grinch');
-        loadGamePlayImage( candyImages, 'candy-cane-orange');
-        loadGamePlayImage( candyImages, 'candy-cane-pink');
-        loadGamePlayImage( candyImages, 'candy-cane-purple');
-        loadGamePlayImage( candyImages, 'candy-cane-red');
+    // candy
+    loadImage( candyImages, 'candy-cane-blue');
+    loadImage( candyImages, 'candy-cane-green');
+    loadImage( candyImages, 'candy-cane-grinch');
+    loadImage( candyImages, 'candy-cane-orange');
+    loadImage( candyImages, 'candy-cane-pink');
+    loadImage( candyImages, 'candy-cane-purple');
+    loadImage( candyImages, 'candy-cane-red');
 
-        // gift
-        loadGamePlayImage( giftImages, 'gift-green');
-        loadGamePlayImage( giftImages, 'gift-purple');
-        loadGamePlayImage( giftImages, 'gift-red');
-        loadGamePlayImage( giftImages, 'gift-yellow');
-        
-        // currency
-        loadGamePlayImage( currencyImages, 'currency-coin-gold');
-        loadGamePlayImage( currencyImages, 'currency-coin-silver');
-        loadGamePlayImage( currencyImages, 'currency-rubby-blue');
-        loadGamePlayImage( currencyImages, 'currency-rubby-green');
-        loadGamePlayImage( currencyImages, 'currency-rubby-orange');
-        loadGamePlayImage( currencyImages, 'currency-rubby-red');
+    // gift
+    loadImage( giftImages, 'gift-green');
+    loadImage( giftImages, 'gift-purple');
+    loadImage( giftImages, 'gift-red');
+    loadImage( giftImages, 'gift-yellow');
+    
+    // currency
+    loadImage( currencyImages, 'currency-coin-gold');
+    loadImage( currencyImages, 'currency-coin-silver');
+    loadImage( currencyImages, 'currency-rubby-blue');
+    loadImage( currencyImages, 'currency-rubby-green');
+    loadImage( currencyImages, 'currency-rubby-orange');
+    loadImage( currencyImages, 'currency-rubby-red');
 }
 
 // load image into imageArray
-function loadGamePlayImage( imageArray, name ) {
+function loadImage( imageArray, name ) {
 
     imageArray[name] = new Image();
-    imageArray[name].src = "./assets/" + name + ".png";
+    imageArray[name].onload = function() {
+        // once image loads, increase loaded count
+        numLoadedImages++;
+    };
+
+    imageArray[name].src = "./assets/images/" + name + ".png";
+}
+
+// Debug info while playing the game
+function renderGameDebugInfo( ) {
+
+    gameCTX.fillStyle = 'black';
+    gameCTX.fillRect( 0, gameCanvas.height - 50, gameCanvas.width, 50 );
+
+    // backup curr values
+    let currFillStyle = gameCTX.fillStyle;
+    let currFont = gameCTX.font;
+    let currAllign = gameCTX.textAlign;
+
+    gameCTX.fillStyle = 'white';
+    gameCTX.font = "12px Arial";
+    gameCTX.textAlign = 'left';
+
+    gameCTX.fillText( "Debug Info -", 0, gameCanvas.height - 40 );
+    gameCTX.fillText( "State: " + gameState, 80, gameCanvas.height - 40 );
+    gameCTX.fillText( "prevTouchMoveX: " + prevTouchMoveX, 0, gameCanvas.height - 30 );
+    gameCTX.fillText( "currTouchMoveX: " + currTouchMoveX, 200, gameCanvas.height - 30 );
+    gameCTX.fillText( "prevTouchMoveY: " + prevTouchMoveY, 0, gameCanvas.height - 20 );
+    gameCTX.fillText( "currTouchMoveY: " + currTouchMoveY, 200, gameCanvas.height - 20 );
+
+    // restore previous values
+    gameCTX.fillStyle = currFillStyle;
+    gameCTX.font = currFont;
+    gameCTX.textAlign = currAllign;
 }
 
 // ------------
