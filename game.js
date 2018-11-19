@@ -1,11 +1,20 @@
 // Constants
 const SNAKE_UPDATE_FREQUENCY_SEC = .33;
-const SNAKE_COLOR = 'lightgreen';
-const SNAKE_BORDER_COLOR = 'darkgreen';
 const FOOD_COLOR = 'red';
 const FOOD_BORDER_COLOR = 'darkred';
 const EIGHT_BIT_FONT_NAME = 'Press Start 2P';
 const TOUCH_THRESHOLD = 45;
+
+const GAMEPLAY_GRID_SIZE = 20;
+
+const GAME_SCREEN_WIDTH = 360;
+const GAME_SCREEN_HEIGHT = 660;
+
+const HUD_WIDTH = GAME_SCREEN_WIDTH;
+const HUD_HEIGHT = 40;
+
+const GAMEBOARD_WIDTH = GAME_SCREEN_WIDTH;
+const GAMEBOARD_HEIGHT = GAME_SCREEN_HEIGHT - HUD_HEIGHT;
 
 // Game State Constants
 const STATE_SETUP = 'SETUP';
@@ -18,9 +27,6 @@ const STATE_SUBMITSCORE = "SUBMITSCORE";
 const STATE_LEADERBOARD = "LEADERBOARD";
 
 // Variables
-let safeWindowWidth = 0;
-let safeWindowHeight = 0;
-
 let menuCanvas = null;
 let hudCanvas = null;
 let gameCanvas = null;
@@ -52,9 +58,11 @@ let foodImages = {};
 let candyImages = {};
 let giftImages = {};
 let currencyImages = {};
+let playfieldImages = {};
+let frontendImages = {};
 
 let numLoadedImages = 0;
-let totalImages = 32;
+let totalImages = 35;
 
 // Game Play
 let gameVariablesSet = false;
@@ -102,10 +110,6 @@ function tick() {
     // update our core game timer. Delta Time is the time elapsed since the last tick
     let deltaTime = updateTimer();
 
-    // set the background image based on game state
-    // TODO: is this the correct spot for this?
-    setBackgroundImage( gameState );
-
     switch( gameState ) {
         case STATE_SETUP: tickSetup(deltaTime); break;
         case STATE_TITLE: tickTitle(deltaTime); break;
@@ -132,28 +136,16 @@ function tickSetup(deltaTime) {
 }
 
 function updateSetup(deltaTime) {
-    // setup the bounds and legal position for the game canvases
-    // 1110 - game level background image width
-    // .0333 % is right/left border size relative to Jose's game level background width
-    // left border: 37px, right border: 43px;
-    // (i think we need him to recut a background with equal right/left borders
-    let canvasSafeZoneWidth = window.innerWidth * .0333;
-    // 1650 - game level background image height
-    // .0327 is top/bottom border size relative to the background height
-    // tob/bottom border size: 54px;
-    let canvasSafeZoneHeight = window.innerHeight * .0327;
 
-    safeWindowWidth = window.innerWidth - canvasSafeZoneWidth;
-    safeWindowHeight = window.innerHeight - canvasSafeZoneHeight;
-
+    // center the gameboard on the screen
     let canvasDiv = document.getElementById('canvasWrapper');
-    canvasDiv.style.left = (canvasSafeZoneWidth) + "px";
-    canvasDiv.style.top = (canvasSafeZoneHeight) + "px";
+    canvasDiv.style.left = ((window.innerWidth - GAME_SCREEN_WIDTH) / 2) + "px";
+    canvasDiv.style.top = ((window.innerHeight - GAME_SCREEN_HEIGHT) / 2) + "px";
 
     // create/setup menu canvas
     menuCanvas = document.getElementById('menuCanvas');
-    menuCanvas.width = safeWindowWidth - canvasSafeZoneWidth;
-    menuCanvas.height = safeWindowHeight - canvasSafeZoneHeight;
+    menuCanvas.width = GAME_SCREEN_WIDTH;
+    menuCanvas.height = GAME_SCREEN_HEIGHT;
 
     menuCTX = menuCanvas.getContext('2d');
     menuCTX.textAlign = 'center';
@@ -173,17 +165,16 @@ function updateSetup(deltaTime) {
 
     // create/setup hud canvas
     hudCanvas = document.getElementById('hudCanvas');
-    hudCanvas.width = safeWindowWidth - canvasSafeZoneWidth;
-    // .0442 % is hud size relative to Jose's game level background height
-    hudCanvas.height = window.innerHeight * .0442;
+    hudCanvas.width = HUD_WIDTH;
+    hudCanvas.height = HUD_HEIGHT;
 
     hudCTX = hudCanvas.getContext('2d');
 
     // create/setup game canvas
     gameCanvas = document.getElementById('gameCanvas');
 
-    gameCanvas.width = safeWindowWidth - canvasSafeZoneWidth;
-    gameCanvas.height = safeWindowHeight - canvasSafeZoneHeight - hudCanvas.height;
+    gameCanvas.width = GAMEBOARD_WIDTH;
+    gameCanvas.height = GAMEBOARD_HEIGHT;
     gameCTX = gameCanvas.getContext('2d');
 
     // event listeners for touch gameplay      
@@ -346,8 +337,12 @@ function renderTitle(deltaTime) {
     playGameButton.render( );
     viewHSButton.render( );
 
+    menuCTX.drawImage( frontendImages['frontend/header'], 0, 0, frontendImages['frontend/header'].width, frontendImages['frontend/header'].height );
     menuCTX.drawImage( buttonImages['button-play-game'], ( menuCanvas.width - ( buttonImages['button-play-game'].width / 2.5 ) ) / 2, ( menuCanvas.height / 2), buttonImages['button-play-game'].width / 2.5, buttonImages['button-play-game'].height / 2.5 );
     menuCTX.drawImage( buttonImages['button-view-high-score'], ( menuCanvas.width - ( buttonImages['button-view-high-score'].width / 2.5 ) ) / 2, ( menuCanvas.height / 2 ) + 100, buttonImages['button-view-high-score'].width / 2.5, buttonImages['button-view-high-score'].height / 2.5 );
+
+    render8bitText( "CCV", 'white', GAMEBOARD_WIDTH / 2, frontendImages['frontend/header'].height + 80, '55px' );
+    render8bitText( "SNAKE", 'white', GAMEBOARD_WIDTH / 2, frontendImages['frontend/header'].height + 150, '55px' );
 
     renderMenuDebugInfo( );
 }
@@ -398,7 +393,7 @@ function renderCountdown(deltaTime) {
     roundedTimer = Math.max( 1, roundedTimer );
 
     // render countdown
-    render8bitText( roundedTimer, 'white', safeWindowWidth / 2, ( safeWindowHeight / 2 ) + 70, '65px' );
+    render8bitText( roundedTimer, 'white', GAMEBOARD_WIDTH / 2, ( GAMEBOARD_HEIGHT / 2 ) + 70, '65px' );
     
     renderMenuDebugInfo( );
 }
@@ -457,6 +452,11 @@ function renderPlay(deltaTime) {
 
     clearCanvas( hudCTX, hudCanvas );
     clearCanvas( gameCTX, gameCanvas );
+
+    // render the game board - todo: let this change as the level progresses
+    let keys = Object.keys(playfieldImages);
+    gameCTX.drawImage( playfieldImages[ keys[ 1 ] ], 0, 0 );
+
     drawSnake();
     drawFood();
     drawHUD();
@@ -553,12 +553,13 @@ function renderGameover(deltaTime) {
 
     clearCanvas( menuCTX, menuCanvas );
 
-    render8bitText( "Your Score", 'white', safeWindowWidth / 2, (menuCanvas.height / 2) - 125, '24px' );
-    render8bitText( playerScore, 'white', safeWindowWidth / 2, (menuCanvas.height / 2) - 75, '24px' );
+    render8bitText( "Your Score", 'white', GAMEBOARD_WIDTH / 2, (menuCanvas.height / 2) - 125, '24px' );
+    render8bitText( playerScore, 'white', GAMEBOARD_WIDTH / 2, (menuCanvas.height / 2) - 75, '24px' );
     
     submitHSButton.render( );
     playAgainButton.render( );
 
+    menuCTX.drawImage( frontendImages['frontend/header'], 0, 0, frontendImages['frontend/header'].width, frontendImages['frontend/header'].height );
     menuCTX.drawImage( buttonImages['button-submit-score'], ( menuCanvas.width - ( buttonImages['button-submit-score'].width / 2.25 ) ) / 2, ( menuCanvas.height / 2), buttonImages['button-submit-score'].width / 2.25, buttonImages['button-submit-score'].height / 2.25 );
     menuCTX.drawImage( buttonImages['button-play-again'], ( menuCanvas.width - ( buttonImages['button-play-again'].width / 2.25 ) ) / 2, ( menuCanvas.height / 2) + 100, buttonImages['button-play-again'].width / 2.25, buttonImages['button-play-again'].height / 2.25 );
 
@@ -663,19 +664,6 @@ function clearCanvas( ctx, canvas ) {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-}
-
-function setBackgroundImage( currGameState ) {
-    let backgroundUrl = '';
-
-    switch( currGameState ) {
-        case STATE_PLAY: backgroundUrl = "url('./assets/backgrounds/background-game-level.jpg')"; break;
-        case STATE_WINDDOWN: backgroundUrl = "url('./assets/backgrounds/background-game-dead.jpg')"; break;
-        case STATE_GAMEOVER: backgroundUrl = "url('./assets/backgrounds/background-game-over.jpg')"; break;
-        default: backgroundUrl = "url('./assets/backgrounds/background-title-screen.jpg')"; break;
-    }
-
-    $('body').css('background-image',backgroundUrl);
 }
 
 function renderMenuDebugInfo( ) {
@@ -784,7 +772,7 @@ function setDefaultGameVariables() {
     ];
     snakeMovementDirection = 'right';
     snakeChangingDirection = false;
-    snakeDirectionX = 20;
+    snakeDirectionX =  GAMEPLAY_GRID_SIZE;
     snakeDirectionY = 0;
     foodX = null;
     foodY = null;
@@ -857,8 +845,8 @@ function updateHUD() {
 function createFood() {
 
     // Generate food coordinates (inside playing field)
-    foodX = returnRandom( 0, gameCanvas.width, 20 );
-    foodY = returnRandom( 0, gameCanvas.height, 20 );
+    foodX = returnRandom( 0, gameCanvas.width, GAMEPLAY_GRID_SIZE );
+    foodY = returnRandom( 0, gameCanvas.height, GAMEPLAY_GRID_SIZE );
 
     // select a random image 
     foodImage = returnRandomImage(foodImageSet);
@@ -875,6 +863,11 @@ function createFood() {
 }
 
 function drawHUD() {
+
+    // draw hud bg-color
+    hudCTX.fillStyle = "gold";
+    hudCTX.fillRect( 0, 0, hudCanvas.width, hudCanvas.height );
+
 
     // draw hud text
     hudCTX.fillStyle = "white";
@@ -903,7 +896,7 @@ function drawSnake() {
 // Draw snake head
 function drawSnakeHead(snakePart) {
 
-    gameCTX.drawImage(snakeImages['snake-head'], snakePart.x, snakePart.y, 20, 20);
+    gameCTX.drawImage(snakeImages['snake-head'], snakePart.x, snakePart.y, GAMEPLAY_GRID_SIZE, GAMEPLAY_GRID_SIZE);
 
 }
 
@@ -911,9 +904,9 @@ function drawSnakeHead(snakePart) {
 function drawSnakeBodyPart(snakePart, alternate) {
 
     if ( !alternate ) {
-        gameCTX.drawImage(snakeImages['snake-body-a'], snakePart.x, snakePart.y, 20, 20);
+        gameCTX.drawImage(snakeImages['snake-body-a'], snakePart.x, snakePart.y, GAMEPLAY_GRID_SIZE, GAMEPLAY_GRID_SIZE);
     } else {
-        gameCTX.drawImage(snakeImages['snake-body-b'], snakePart.x, snakePart.y, 20, 20);
+        gameCTX.drawImage(snakeImages['snake-body-b'], snakePart.x, snakePart.y, GAMEPLAY_GRID_SIZE, GAMEPLAY_GRID_SIZE);
     }
 }
 
@@ -923,12 +916,12 @@ function drawFood() {
     // draw an image of food, otherwise draw a blank square 
     // TODO: do we need this kind of backup or is drawing an image good enough?
     if (foodImage) {
-        gameCTX.drawImage(foodImage, foodX, foodY, 20, 20);
+        gameCTX.drawImage(foodImage, foodX, foodY, GAMEPLAY_GRID_SIZE, GAMEPLAY_GRID_SIZE);
     } else {
         gameCTX.fillStyle = FOOD_COLOR;
         gameCTX.strokeStyle = FOOD_BORDER_COLOR;
-        gameCTX.fillRect(foodX, foodY, 20, 20);
-        gameCTX.strokeRect(foodX, foodY, 20, 20);
+        gameCTX.fillRect(foodX, foodY, GAMEPLAY_GRID_SIZE, GAMEPLAY_GRID_SIZE);
+        gameCTX.strokeRect(foodX, foodY, GAMEPLAY_GRID_SIZE, GAMEPLAY_GRID_SIZE);
     }
 
 }
@@ -1000,26 +993,26 @@ function changeDirection(direction) {
         switch(direction) {
             case 'left': {
                 snakeMovementDirection = 'left';
-                snakeDirectionX = -20;
+                snakeDirectionX = -GAMEPLAY_GRID_SIZE;
                 snakeDirectionY = 0;
                 break;
             }
             case 'right': {
                 snakeMovementDirection = 'right';
-                snakeDirectionX = 20;
+                snakeDirectionX = GAMEPLAY_GRID_SIZE;
                 snakeDirectionY = 0;
                 break;
             }
             case 'up': {
                 snakeMovementDirection = 'up';
                 snakeDirectionX = 0;
-                snakeDirectionY = -20; 
+                snakeDirectionY = -GAMEPLAY_GRID_SIZE; 
                 break;
             }
             case 'down': {
                 snakeMovementDirection = 'down';
                 snakeDirectionX = 0;
-                snakeDirectionY = 20;
+                snakeDirectionY = GAMEPLAY_GRID_SIZE;
                 break;
             }
             default: {
@@ -1089,10 +1082,17 @@ function loadImages() {
     loadImage( currencyImages, 'currency-ruby-green');
     loadImage( currencyImages, 'currency-ruby-orange');
     loadImage( currencyImages, 'currency-ruby-red');
+
+    // gameplay fields
+    loadImage( playfieldImages, 'playfields/playfield-0', '.jpg');
+    loadImage( playfieldImages, 'playfields/playfield-1', '.jpg');
+
+    // frontend images
+    loadImage( frontendImages, 'frontend/header' );
 }
 
 // load image into imageArray
-function loadImage( imageArray, name ) {
+function loadImage( imageArray, name, ext = ".png" ) {
 
     imageArray[name] = new Image();
     imageArray[name].onload = function() {
@@ -1100,7 +1100,7 @@ function loadImage( imageArray, name ) {
         numLoadedImages++;
     };
 
-    imageArray[name].src = "./assets/images/" + name + ".png";
+    imageArray[name].src = "./assets/images/" + name + ext;
 }
 
 // Debug info while playing the game
