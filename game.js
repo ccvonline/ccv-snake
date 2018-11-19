@@ -421,10 +421,6 @@ function tickPlay(deltaTime) {
     
         // reset playTimer to 0
         playTimer -= 33 / gameSpeed;
-
-        console.log("pX: " + prevTouchMoveX + " pY: " + prevTouchMoveY );
-        console.log("cX: " + currTouchMoveX + " cY: " + currTouchMoveY );
-        console.log("movementDir: " + snakeMovementDirection );
     }
 }
 
@@ -456,7 +452,7 @@ function renderPlay(deltaTime) {
     drawFood();
     drawHUD();
     
-    renderGameDebugInfo( );
+    //renderGameDebugInfo( );
 }
 // ------------
 /* END STATE PLAY */
@@ -1119,10 +1115,6 @@ function renderGameDebugInfo( ) {
 
     gameCTX.fillText( "Debug Info -", 0, gameCanvas.height - 40 );
     gameCTX.fillText( "State: " + gameState, 80, gameCanvas.height - 40 );
-    gameCTX.fillText( "prevTouchMoveX: " + prevTouchMoveX, 0, gameCanvas.height - 30 );
-    gameCTX.fillText( "currTouchMoveX: " + currTouchMoveX, 200, gameCanvas.height - 30 );
-    gameCTX.fillText( "prevTouchMoveY: " + prevTouchMoveY, 0, gameCanvas.height - 20 );
-    gameCTX.fillText( "currTouchMoveY: " + currTouchMoveY, 200, gameCanvas.height - 20 );
     gameCTX.fillText( "snakeX: " +snake[0].x, 0, gameCanvas.height -10)
     gameCTX.fillText( "snakeY: " +snake[0].y, 80, gameCanvas.height -10)
 
