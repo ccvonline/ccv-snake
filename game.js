@@ -5,6 +5,7 @@ const SNAKE_BORDER_COLOR = 'darkgreen';
 const FOOD_COLOR = 'red';
 const FOOD_BORDER_COLOR = 'darkred';
 const EIGHT_BIT_FONT_NAME = 'Press Start 2P';
+const TOUCH_THRESHOLD = 45;
 
 // Game State Constants
 const STATE_SETUP = 'SETUP';
@@ -57,10 +58,11 @@ let totalImages = 32;
 
 // Game Play
 let gameVariablesSet = false;
+let countdownTimer = 3;
+let playTimer = 0;
 let playerScore = null;
 let gameRound = null;
 let gameSpeed = null;
-let foodConsumed = null;
 let snake = null;
 let snakeMovementDirection = null;
 let snakeChangingDirection = null;
@@ -68,6 +70,9 @@ let snakeDirectionX = null;
 let snakeDirectionY = null;
 let foodX = null;
 let foodY = null;
+let foodImageSet = null;
+let foodImage = null;
+let foodConsumed = null;
 let hudRound = null;
 let hudScore = null;
 let currTouchMoveX = null;
@@ -182,19 +187,14 @@ function updateSetup(deltaTime) {
 
     // event listener for touch gameplay      
     gameCanvas.addEventListener('touchmove', function(event) {
+        event.preventDefault();
 
         // only process direction change if game state play and snake is not already changing direction
         if ( gameState === STATE_PLAY && snakeChangingDirection === false) {
-            event.preventDefault();
 
             // get the x/y of current touch event
             currTouchMoveX = event.changedTouches[0].screenX;
             currTouchMoveY = event.changedTouches[0].screenY;
-
-            // threshold is used to control responsiveness
-            // lower number triggers move faster (if too low, move will be triggered unintentionally by gamer)
-            // higher number triggers move slower
-            const threshold =  25;
 
             // set prevTouchMove X/Y if not set
             if (!prevTouchMoveX) {
@@ -204,46 +204,76 @@ function updateSetup(deltaTime) {
                 prevTouchMoveY = currTouchMoveY;
             }
 
-            // check if currTouchMove is less than or greater than prevTouchMove + or - threshold (this implies movement direction)
-            // check is done for both X and Y
-            if (currTouchMoveX >= prevTouchMoveX + threshold) {
-                // move snake right if snake is not already moving right or left
-                if (snakeMovementDirection !== 'left' && snakeMovementDirection !== 'right') {
-                    changeDirection('right');
-                }
-                
-                // reset prevTouchMoveX / Y (so we dont trigger movement in another direction sooner than expected)
-                prevTouchMoveX = currTouchMoveX;
-                prevTouchMoveY = currTouchMoveY;
-            } else if (currTouchMoveX <= prevTouchMoveX - threshold) {
-                // move snake left if snake is not already moving left or right
-                if (snakeMovementDirection !== 'right' && snakeMovementDirection !== 'left') {
-                    changeDirection('left');
-                }
-                
-                // reset prevTouchMoveX / Y (so we dont trigger movement in another direction sooner than expected)
-                prevTouchMoveX = currTouchMoveX;
-                prevTouchMoveY = currTouchMoveY;
+            // check if touch was too far out of range (so taps dont register as swipe)
+            if ( Math.abs( currTouchMoveX ) > Math.abs( prevTouchMoveX + ( TOUCH_THRESHOLD * 2 ) ) || Math.abs( currTouchMoveY ) > Math.abs( prevTouchMoveY + ( TOUCH_THRESHOLD * 2 ) )  ) {
+                // reset previous touch X/Y 
+                resetTouchMoveXY();               
+
+                // ignore this touch
+                return;
             }
 
-            if (currTouchMoveY >= prevTouchMoveY + threshold) {
-                // move snake down if snake is not already moving down or up
-                if (snakeMovementDirection !== 'up' && snakeMovementDirection !== 'down') {
-                    changeDirection('down');
+            switch ( snakeMovementDirection ) {
+                case 'right': {
+                    if ( detectSwipeUp() ) {
+
+                        changeDirection( 'up' );
+
+                        resetTouchMoveXY( );
+                    } else if ( detectSwipeDown() ) {
+
+                        changeDirection( 'down' );
+
+                        resetTouchMoveXY( );
+                    }
+
+                    break; 
+                } 
+                case 'left': { 
+                    if ( detectSwipeUp() ) {
+
+                        changeDirection( 'up' );
+
+                        resetTouchMoveXY( );
+                    } else if ( detectSwipeDown() ) {
+
+                        changeDirection( 'down' );
+                    
+                        resetTouchMoveXY( );
+                    }
+
+                    break;
                 }
-                
-                // reset prevTouchMoveX / Y (so we dont trigger movement in another direction sooner than expected)
-                prevTouchMoveY = currTouchMoveY;
-                prevTouchMoveX = currTouchMoveX;
-            } else if (currTouchMoveY <= prevTouchMoveY - threshold) {
-                // move snake up if snake is not already moving up or down
-                if (snakeMovementDirection !== 'down' && snakeMovementDirection !== 'up') {
-                    changeDirection('up');
+                case 'up': {
+                    if ( detectSwipeRight() ) {
+
+                        changeDirection( 'right' );
+                        
+                        resetTouchMoveXY( );
+                    } else if ( detectSwipeLeft() ) {
+
+                        changeDirection( 'left' );
+                    
+                        resetTouchMoveXY( );
+                    }
+
+                    break;
                 }
-                
-                // reset prevTouchMoveX / Y (so we dont trigger movement in another direction sooner than expected)
-                prevTouchMoveY = currTouchMoveY;
-                prevTouchMoveX = currTouchMoveX;
+                case 'down': {
+                    if ( detectSwipeRight() ) {
+
+                        changeDirection( 'right' );
+
+                        resetTouchMoveXY( );
+                    } else if ( detectSwipeLeft() ) {
+                        
+                        changeDirection( 'left' );
+
+                        resetTouchMoveXY( );
+                    }
+
+                    break;
+                }
             }
         }
     }, false);
@@ -290,7 +320,7 @@ function updateSetup(deltaTime) {
     });
 
     // create transparent buttons (rendered under the button images so we can capture the click)
-    // use image dimensions to set width, height, and location
+    // use button image dimensions to set width, height, and location
     playGameButton = new TransparentButton( menuCTX, ( buttonImages['button-play-game'].width / 2.5 ), (buttonImages['button-play-game'].height / 2.5 ) );
     playGameButton.x = ( menuCanvas.width - ( buttonImages['button-play-game'].width / 2.5 ) ) / 2;
     playGameButton.y = ( menuCanvas.height / 2 );
@@ -360,8 +390,6 @@ function renderTitle(deltaTime) {
 
 /* STATE: COUNTDOWN */
 // ------------
-let countdownTimer = 3;
-let elapsedTimer = 0;
 
 function tickCountdown(deltaTime) {
 
@@ -383,12 +411,13 @@ function updateCountdown(deltaTime) {
     
     // do the 3...2...1 thang
     countdownTimer -= deltaTime;
+    
+    // when counter gets to 0, change to STATE_PLAY
     if( countdownTimer <= 0 ) {
         gameState = STATE_PLAY;
 
-        // reset the countdown for the next playthru
-        countdownTimer += 3.0;
     }
+
 }
 
 function renderCountdown(deltaTime) {
@@ -402,7 +431,7 @@ function renderCountdown(deltaTime) {
     roundedTimer = Math.max( 1, roundedTimer );
 
     // render countdown
-    render8bitText( roundedTimer, 'black', safeWindowWidth / 2, safeWindowHeight / 2 );
+    render8bitText( roundedTimer, 'white', safeWindowWidth / 2, ( safeWindowHeight / 2 ) + 70, '65px' );
     
     renderMenuDebugInfo( );
 }
@@ -412,7 +441,6 @@ function renderCountdown(deltaTime) {
 
 /* STATE: PLAY */
 // ------------
-let playTimer = 0;
 
 function tickPlay(deltaTime) {
 
@@ -484,7 +512,7 @@ function updateWinddown(deltaTime) {
     winddownTimer += deltaTime;
 
     // when it gets to or past 5 seconds, change states
-    if( winddownTimer >= 5.00 ) {
+    if( winddownTimer >= 4.00 ) {
         gameState = STATE_GAMEOVER;
 
         // create transparent button to capture clicks
@@ -497,26 +525,18 @@ function updateWinddown(deltaTime) {
         playAgainButton.y = ( menuCanvas.height / 2 ) + 100;
 
         // reset the timer so that the next time this state is run, the timer is 0 again.
-        winddownTimer -= 5.00;
+        winddownTimer -= 4.00;
     }
 }
 
 function renderWinddown(deltaTime) {
 
-    // wait 2s before rendering winddown (so player sees where they failed at)
-    if (winddownTimer >= 2.00) {
+    // ensure menu canvas is displayed and hud and game canvas are hidden
+    $('#menuCanvas').css('display','block');
+    $('#hudCanvas').css('display','none');
+    $('#gameCanvas').css('display','none');
 
-        // ensure menu canvas is displayed and hud and game canvas are hidden
-        $('#menuCanvas').css('display','block');
-        $('#hudCanvas').css('display','none');
-        $('#gameCanvas').css('display','none');
-
-        clearCanvas( menuCTX, menuCanvas );
-
-        render8bitText( "Dead.", 'black', safeWindowWidth / 2, 50 );
-        render8bitText( "Score", 'black', safeWindowWidth / 2, 100 );
-        render8bitText( playerScore, 'black', safeWindowWidth / 2, 150 );    
-    }
+    clearCanvas( menuCTX, menuCanvas );
     
     renderMenuDebugInfo(  );
 }
@@ -557,7 +577,8 @@ function renderGameover(deltaTime) {
 
     clearCanvas( menuCTX, menuCanvas );
 
-    render8bitText( "Your Score: " + playerScore, 'white', safeWindowWidth / 2, 200 );
+    render8bitText( "Your Score", 'white', safeWindowWidth / 2, (menuCanvas.height / 2) - 125, '24px' );
+    render8bitText( playerScore, 'white', safeWindowWidth / 2, (menuCanvas.height / 2) - 75, '24px' );
     
     submitHSButton.render( );
     playAgainButton.render( );
@@ -673,7 +694,7 @@ function setBackgroundImage( currGameState ) {
 
     switch( currGameState ) {
         case STATE_PLAY: backgroundUrl = "url('./assets/backgrounds/background-game-level.jpg')"; break;
-        case STATE_WINDDOWN: backgroundUrl = "url('./assets/backgrounds/background-game-level.jpg')"; break;
+        case STATE_WINDDOWN: backgroundUrl = "url('./assets/backgrounds/background-game-dead.jpg')"; break;
         case STATE_GAMEOVER: backgroundUrl = "url('./assets/backgrounds/background-game-over.jpg')"; break;
         default: backgroundUrl = "url('./assets/backgrounds/background-title-screen.jpg')"; break;
     }
@@ -733,14 +754,14 @@ function resetInputEvents() {
     leaderboardViewingDoneClicked = false;
 }
 
-function render8bitText( renderText, color, posX, posY ) {
+function render8bitText( renderText, color, posX, posY, fontSize = '20px' ) {
 
     // backup curr values
     let currFillStyle = menuCTX.fillStyle;
     let currFont = menuCTX.font;
 
     menuCTX.fillStyle = color;
-    menuCTX.font = `20px "${EIGHT_BIT_FONT_NAME}"`;
+    menuCTX.font = `${fontSize} "${EIGHT_BIT_FONT_NAME}"`;
     menuCTX.fillText( renderText, posX, posY );
 
     // restore previous values
@@ -769,9 +790,10 @@ function onLeaderboardViewingDone() {
 // Set default values of game variables
 function setDefaultGameVariables() {
     playerScore = 0;
+    countdownTimer = 3;
+    playTimer = 0;
     gameRound = 1;
-    gameSpeed = GAME_SPEED
-    foodConsumed = 0;
+    gameSpeed = GAME_SPEED;
     snake = [
         {x: 140, y: 140},
         {x: 120, y: 140},
@@ -785,6 +807,9 @@ function setDefaultGameVariables() {
     snakeDirectionY = 0;
     foodX = null;
     foodY = null;
+    foodConsumed = 0;
+    foodImage = null;
+    foodImageSet = foodImages;
     hudRound = null;
     hudScore = null;
     prevTouchMoveX = null;
@@ -797,10 +822,11 @@ function setDefaultGameVariables() {
 function clearGameVariables() {
     // Game Play
     gameVariablesSet = false;
+    countdownTimer = 3;
+    playTimer = 0;
     playerScore = null;
     gameRound = null;
     gameSpeed = null;
-    foodConsumed = null;
     snake = null;
     snakeMovementDirection = null;
     snakeChangingDirection = null;
@@ -808,6 +834,9 @@ function clearGameVariables() {
     snakeDirectionY = null;
     foodX = null;
     foodY = null;
+    foodConsumed = null;
+    foodImageSet = null;
+    foodImage = null;
     hudRound = null;
     hudScore = null;
     prevTouchMoveX = null;
@@ -824,9 +853,12 @@ function updateHUD() {
 // Create Food
 function createFood() {
 
-    // Generate food (inside playing field)
-    foodX = randomTwenty(0, gameCanvas.width);
-    foodY = randomTwenty(0, gameCanvas.height);
+    // Generate food coordinates (inside playing field)
+    foodX = returnRandom( 0, gameCanvas.width, 20 );
+    foodY = returnRandom( 0, gameCanvas.height, 20 );
+
+    // select a random image 
+    foodImage = returnRandomImage(foodImageSet);
 
     // Check if food was created where the snake is, if so try the creation again
     snake.forEach(function isFoodOnSnake(part) {
@@ -842,12 +874,12 @@ function createFood() {
 function drawHUD() {
 
     // draw hud text
-    hudCTX.fillStyle = "black";
-    hudCTX.font = `14px "${EIGHT_BIT_FONT_NAME}"`;
+    hudCTX.fillStyle = "white";
+    hudCTX.font = `20px "${EIGHT_BIT_FONT_NAME}"`;
     hudCTX.textAlign = "left";
-    hudCTX.fillText( "Round: " + hudRound, 10, 20);
+    hudCTX.fillText( "Round:" + hudRound, 10, 27) ;
     hudCTX.textAlign = "right";
-    hudCTX.fillText( "Score: " + hudScore, safeWindowWidth - 10, 20);
+    hudCTX.fillText( hudScore, hudCanvas.width - 10, 27);
 }
 
 // Draw snake
@@ -885,10 +917,17 @@ function drawSnakeBodyPart(snakePart, alternate) {
 // Draw food
 function drawFood() {
 
-    gameCTX.fillStyle = FOOD_COLOR;
-    gameCTX.strokeStyle = FOOD_BORDER_COLOR;
-    gameCTX.fillRect(foodX, foodY, 20, 20);
-    gameCTX.strokeRect(foodX, foodY, 20, 20);
+    // draw an image of food, otherwise draw a blank square 
+    // TODO: do we need this kind of backup or is drawing an image good enough?
+    if (foodImage) {
+        gameCTX.drawImage(foodImage, foodX, foodY, 20, 20);
+    } else {
+        gameCTX.fillStyle = FOOD_COLOR;
+        gameCTX.strokeStyle = FOOD_BORDER_COLOR;
+        gameCTX.fillRect(foodX, foodY, 20, 20);
+        gameCTX.strokeRect(foodX, foodY, 20, 20);
+    }
+
 }
 
 // Advance the snake forward
@@ -903,9 +942,9 @@ function advanceSnake() {
     // add new head location to snake
     snake.unshift(head);
 
-    if (checkFoodEaten()) {
+    if (detectFoodEaten()) {
         // ate food, increase score, create new food, and do NOT remove last part of snake
-        playerScore += 10;
+        playerScore += 100;
 
         // vibrate the device
         Haptics.vibrate(200);
@@ -918,7 +957,7 @@ function advanceSnake() {
 }
 
 // check if the snake head is on food
-function checkFoodEaten() {
+function detectFoodEaten() {
 
     if ( snake[0].x === foodX && snake[0].y === foodY ) {
         // food consumed, increase count
@@ -926,10 +965,21 @@ function checkFoodEaten() {
 
         // increase round if 5 food consumed
         if (foodConsumed === 5) {
+            // select a new food image set
+            if ( foodImageSet === foodImages ) {
+                foodImageSet = candyImages;
+            } else if ( foodImageSet === candyImages ) {
+                foodImageSet = giftImages;
+            } else if ( foodImageSet === giftImages ) {
+                foodImageSet = currencyImages;
+            } else if ( foodImageSet === currencyImages ) {
+                foodImageSet = foodImages;
+            }
+
             // increase gameRound
             gameRound++;
             // increase gameSpeed
-            gameSpeed += 100;
+            gameSpeed += 25;
 
             // reset foodConsumed
             foodConsumed = 0;
@@ -1001,11 +1051,19 @@ function changeDirection(direction) {
     }
 }
 
-// Generate a random number
-function randomTwenty(min, max) {
+// Generate a random number by intervals
+// wasnt sure if using name random() would cause issues with some default function I dont know about
+function returnRandom(min, max, interval) {
 
-    return min + ( 20 * Math.floor(Math.random() * ( max-min ) / 20 ) );
+    return min + ( interval * Math.floor(Math.random() * ( max-min ) / interval ) );
+}
 
+// return a random image from image associative array
+function returnRandomImage( object ) {
+
+    let keys = Object.keys(object);
+
+    return object[keys[Math.floor(keys.length * Math.random())]];
 }
 
 // Load game asset images into image arrays
@@ -1049,10 +1107,10 @@ function loadImages() {
     // currency
     loadImage( currencyImages, 'currency-coin-gold');
     loadImage( currencyImages, 'currency-coin-silver');
-    loadImage( currencyImages, 'currency-rubby-blue');
-    loadImage( currencyImages, 'currency-rubby-green');
-    loadImage( currencyImages, 'currency-rubby-orange');
-    loadImage( currencyImages, 'currency-rubby-red');
+    loadImage( currencyImages, 'currency-ruby-blue');
+    loadImage( currencyImages, 'currency-ruby-green');
+    loadImage( currencyImages, 'currency-ruby-orange');
+    loadImage( currencyImages, 'currency-ruby-red');
 }
 
 // load image into imageArray
@@ -1088,11 +1146,41 @@ function renderGameDebugInfo( ) {
     gameCTX.fillText( "currTouchMoveX: " + currTouchMoveX, 200, gameCanvas.height - 30 );
     gameCTX.fillText( "prevTouchMoveY: " + prevTouchMoveY, 0, gameCanvas.height - 20 );
     gameCTX.fillText( "currTouchMoveY: " + currTouchMoveY, 200, gameCanvas.height - 20 );
+    gameCTX.fillText( "snakeX: " +snake[0].x, 0, gameCanvas.height -10)
+    gameCTX.fillText( "snakeY: " +snake[0].y, 80, gameCanvas.height -10)
 
     // restore previous values
     gameCTX.fillStyle = currFillStyle;
     gameCTX.font = currFont;
     gameCTX.textAlign = currAllign;
+}
+
+// check for right swipe
+function detectSwipeRight( ) {
+    return currTouchMoveX >= ( prevTouchMoveX + TOUCH_THRESHOLD );
+}
+
+// check for left swipe
+function detectSwipeLeft( ) {
+    return currTouchMoveX <= ( prevTouchMoveX - TOUCH_THRESHOLD );
+}
+
+// check for down swipe
+function detectSwipeDown( ) {
+    return currTouchMoveY >= ( prevTouchMoveY + TOUCH_THRESHOLD );
+}
+
+// check for up swipe
+function detectSwipeUp( ) {
+    return currTouchMoveY <= ( prevTouchMoveY - TOUCH_THRESHOLD );
+}
+
+// reset previous touch
+function resetTouchMoveXY( ) {
+    prevTouchMoveX = null;
+    currTouchMoveX = null;
+    prevTouchMoveY = null; 
+    currTouchMoveY = null;
 }
 
 // ------------
