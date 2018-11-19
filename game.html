@@ -15,7 +15,7 @@
     </head>
 
     <body style="background-color: darkslategrey;">
-        <div style="background-color: white; position: absolute;" id="canvasWrapper">
+        <div style="position: absolute;" id="canvasWrapper">
             <canvas id="menuCanvas" style="display: none;"></canvas>
             <canvas id="hudCanvas" style="display: none;"></canvas>
             <canvas id="gameCanvas" style="display: none;"></canvas>
@@ -125,6 +125,13 @@
         margin: 0px;
         padding: 0px;
         overflow: hidden;
+    }
+
+    /* Starting background */
+    body {
+        /* background-image: url('./assets/background-title-screen.jpg'); */
+        background-repeat: no-repeat;
+        background-size: 100% 100%;
     }
 
     /* Leaderboard Styling */
@@ -262,5 +269,10 @@
         font-family: 'Press Start 2P';
         text-transform: uppercase;
     }
+
+    /* Game Play styling */
+
+    /* End Game Play styling */
+
 
 </style>

@@ -1,12 +1,11 @@
 // Constants
-const GAME_SPEED = 500;
-const CANVAS_BORDER_COLOR = 'black';
-const CANVAS_BACKGROUND_COLOR = 'white';
+const GAME_SPEED = 200;
 const SNAKE_COLOR = 'lightgreen';
 const SNAKE_BORDER_COLOR = 'darkgreen';
 const FOOD_COLOR = 'red';
 const FOOD_BORDER_COLOR = 'darkred';
 const EIGHT_BIT_FONT_NAME = 'Press Start 2P';
+const TOUCH_THRESHOLD = 45;
 
 // Game State Constants
 const STATE_SETUP = 'SETUP';
@@ -46,12 +45,24 @@ let tickTimer = Date.now();
 // Game state
 let gameState = STATE_SETUP;
 
+// Image Assets
+let buttonImages = {};
+let snakeImages = {};
+let foodImages = {};
+let candyImages = {};
+let giftImages = {};
+let currencyImages = {};
+
+let numLoadedImages = 0;
+let totalImages = 32;
+
 // Game Play
 let gameVariablesSet = false;
+let countdownTimer = 3;
+let playTimer = 0;
 let playerScore = null;
 let gameRound = null;
 let gameSpeed = null;
-let foodConsumed = null;
 let snake = null;
 let snakeMovementDirection = null;
 let snakeChangingDirection = null;
@@ -59,37 +70,46 @@ let snakeDirectionX = null;
 let snakeDirectionY = null;
 let foodX = null;
 let foodY = null;
+let foodImageSet = null;
+let foodImage = null;
+let foodConsumed = null;
 let hudRound = null;
 let hudScore = null;
+let currTouchMoveX = null;
+let currTouchMoveY = null;
 let prevTouchMoveX = null;
 let prevTouchMoveY = null;
+
 
 // Core Methods
 // ------------
 $( document ).ready(function() {
+    // load images into arrays for use on the canvas
+    loadImages();
+
+    // start game tick
     setInterval( tick, 33 );
 });
 
 function tick() {
+    // check if all images have been loaded
+    if ( numLoadedImages !== totalImages) {
+        // images not loaded, dont proceed
+        return;
+    }
 
     // update our core game timer. Delta Time is the time elapsed since the last tick
     let deltaTime = updateTimer();
 
+    // set the background image based on game state
+    // TODO: is this the correct spot for this?
+    setBackgroundImage( gameState );
+
     switch( gameState ) {
         case STATE_SETUP: tickSetup(deltaTime); break;
-        case STATE_TITLE: {
-            // ensure menu canvas is displayed and hud and game canvas are hidden
-            displayMenu();
-            tickTitle(deltaTime); 
-            break;
-        } 
+        case STATE_TITLE: tickTitle(deltaTime); break;
         case STATE_COUNTDOWN: tickCountdown(deltaTime); break;
-        case STATE_PLAY: { 
-            // hide menu canvas and display hud and game canvas
-            displayGame();
-            tickPlay(deltaTime); 
-            break;
-        }
+        case STATE_PLAY: tickPlay(deltaTime); break;
         case STATE_WINDDOWN: tickWinddown(deltaTime); break;
         case STATE_GAMEOVER: tickGameover(deltaTime); break;
         case STATE_SUBMITSCORE: tickSubmitScore(deltaTime); break;
@@ -111,23 +131,28 @@ function tickSetup(deltaTime) {
 }
 
 function updateSetup(deltaTime) {
-
     // setup the bounds and legal position for the game canvases
-    let canvasSafeZoneWidth = window.innerWidth * .05;
-    let canvasSafeZoneHeight = window.innerHeight * .05;
+    // 1110 - game level background image width
+    // .0333 % is right/left border size relative to Jose's game level background width
+    // left border: 37px, right border: 43px;
+    // (i think we need him to recut a background with equal right/left borders
+    let canvasSafeZoneWidth = window.innerWidth * .0333;
+    // 1650 - game level background image height
+    // .0327 is top/bottom border size relative to the background height
+    // tob/bottom border size: 54px;
+    let canvasSafeZoneHeight = window.innerHeight * .0327;
 
     safeWindowWidth = window.innerWidth - canvasSafeZoneWidth;
     safeWindowHeight = window.innerHeight - canvasSafeZoneHeight;
 
     let canvasDiv = document.getElementById('canvasWrapper');
-    canvasDiv.style.left = (canvasSafeZoneWidth / 2) + "px";
-    canvasDiv.style.top = (canvasSafeZoneHeight / 2) + "px";
-
+    canvasDiv.style.left = (canvasSafeZoneWidth) + "px";
+    canvasDiv.style.top = (canvasSafeZoneHeight) + "px";
 
     // create/setup menu canvas
     menuCanvas = document.getElementById('menuCanvas');
-    menuCanvas.width = safeWindowWidth;
-    menuCanvas.height = safeWindowHeight;
+    menuCanvas.width = safeWindowWidth - canvasSafeZoneWidth;
+    menuCanvas.height = safeWindowHeight - canvasSafeZoneHeight;
 
     menuCTX = menuCanvas.getContext('2d');
     menuCTX.textAlign = 'center';
@@ -147,31 +172,31 @@ function updateSetup(deltaTime) {
 
     // create/setup hud canvas
     hudCanvas = document.getElementById('hudCanvas');
-    hudCanvas.width = safeWindowWidth;
-    hudCanvas.height = 30;
+    hudCanvas.width = safeWindowWidth - canvasSafeZoneWidth;
+    // .0442 % is hud size relative to Jose's game level background height
+    hudCanvas.height = window.innerHeight * .0442;
 
     hudCTX = hudCanvas.getContext('2d');
 
     // create/setup game canvas
     gameCanvas = document.getElementById('gameCanvas');
-    gameCanvas.width = safeWindowWidth;
-    gameCanvas.height = safeWindowHeight - 30;
+
+    gameCanvas.width = safeWindowWidth - canvasSafeZoneWidth;
+    gameCanvas.height = safeWindowHeight - canvasSafeZoneHeight - hudCanvas.height;
     gameCTX = gameCanvas.getContext('2d');
 
     // event listener for touch gameplay      
     gameCanvas.addEventListener('touchmove', function(event) {
+        event.preventDefault();
+
         // only process direction change if game state play and snake is not already changing direction
         if ( gameState === STATE_PLAY && snakeChangingDirection === false) {
-            event.preventDefault();
+            
+            console.log( "input received" );
 
             // get the x/y of current touch event
-            const currTouchMoveX = event.changedTouches[0].screenX;
-            const currTouchMoveY = event.changedTouches[0].screenY;
-
-            // threshold is used to control responsiveness
-            // lower number triggers moves faster (if too low, moves will be triggered unintentionally by gamer
-            // higher number triggers moves slower
-            const threshold =  25;
+            currTouchMoveX = event.changedTouches[0].screenX;
+            currTouchMoveY = event.changedTouches[0].screenY;
 
             // set prevTouchMove X/Y if not set
             if (!prevTouchMoveX) {
@@ -181,52 +206,132 @@ function updateSetup(deltaTime) {
                 prevTouchMoveY = currTouchMoveY;
             }
 
-            // check if currTouchMove is less than or greater than prevTouchMove + or - threshold (this implies movement direction)
-            // check is done for both X and Y
-            if (currTouchMoveX >= prevTouchMoveX + threshold) {
-                // move snake right if snake is not already moving right or left
-                if (snakeMovementDirection !== 'left' || snakeMovementDirection !== 'right') {
-                    changeDirection('right');
-                }
+            // check if touch was too far out of range (so taps dont register as swipe)
+            if ( Math.abs( currTouchMoveX - prevTouchMoveX ) > Math.abs( ( TOUCH_THRESHOLD * 2 ) ) || Math.abs( currTouchMoveY - prevTouchMoveY ) > Math.abs( ( TOUCH_THRESHOLD * 2 ) )  ) {
+
+                console.log("EARLY OUT - BAD TOUCH" );
+                console.log("pX: " + prevTouchMoveX + " pY: " + prevTouchMoveY );
+                console.log("cX: " + currTouchMoveX + " cY: " + currTouchMoveY );
                 
-                // reset prevTouchMoveX / Y (so we dont trigger movement in another direction sooner than expected)
-                prevTouchMoveX = currTouchMoveX;
-                prevTouchMoveY = currTouchMoveY;
-            } else if (currTouchMoveX <= prevTouchMoveX - threshold) {
-                // move snake left if snake is not already moving left or right
-                if (snakeMovementDirection !== 'right' || snakeMovementDirection !== 'left') {
-                    changeDirection('left');
-                }
-                
-                // reset prevTouchMoveX / Y (so we dont trigger movement in another direction sooner than expected)
-                prevTouchMoveX = currTouchMoveX;
-                prevTouchMoveY = currTouchMoveY;
+                // reset previous touch X/Y 
+                resetTouchMoveXY();               
+
+                // ignore this touch
+                return;
             }
 
-            if (currTouchMoveY >= prevTouchMoveY + threshold) {
-                // move snake down if snake is not already moving down or up
-                if (snakeMovementDirection !== 'up' || snakeMovementDirection !== 'down') {
-                    changeDirection('down');
+            switch ( snakeMovementDirection ) {
+                case 'right': {
+                    console.log("GOING RIGHT" );
+
+                    if ( detectSwipeUp() ) {
+                        console.log("CHANGING TO UP" );
+                        console.log("pX: " + prevTouchMoveX + " pY: " + prevTouchMoveY );
+                        console.log("cX: " + currTouchMoveX + " cY: " + currTouchMoveY );
+                        console.log( "deltaX: " + (currTouchMoveX - prevTouchMoveX) + " ," + "deltaY: " + (currTouchMoveY - prevTouchMoveY) );
+
+                        changeDirection( 'up' );
+
+                        resetTouchMoveXY( );
+                    } else if ( detectSwipeDown() ) {
+
+                        console.log("CHANGING TO DOWN" );
+                        console.log("pX: " + prevTouchMoveX + " pY: " + prevTouchMoveY );
+                        console.log("cX: " + currTouchMoveX + " cY: " + currTouchMoveY );
+                        console.log( "deltaX: " + (currTouchMoveX - prevTouchMoveX) + " ," + "deltaY: " + (currTouchMoveY - prevTouchMoveY) );
+
+                        changeDirection( 'down' );
+
+                        resetTouchMoveXY( );
+                    }
+
+                    break; 
+                } 
+                case 'left': { 
+                    console.log("GOING LEFT" );
+
+                    if ( detectSwipeUp() ) {
+
+                        console.log("CHANGING TO UP" );
+                        console.log("pX: " + prevTouchMoveX + " pY: " + prevTouchMoveY );
+                        console.log("cX: " + currTouchMoveX + " cY: " + currTouchMoveY );
+                        console.log( "deltaX: " + (currTouchMoveX - prevTouchMoveX) + " ," + "deltaY: " + (currTouchMoveY - prevTouchMoveY) );
+
+                        changeDirection( 'up' );
+
+                        resetTouchMoveXY( );
+                    } else if ( detectSwipeDown() ) {
+
+                        console.log("CHANGING TO DOWN" );
+                        console.log("pX: " + prevTouchMoveX + " pY: " + prevTouchMoveY );
+                        console.log("cX: " + currTouchMoveX + " cY: " + currTouchMoveY );
+                        console.log( "deltaX: " + (currTouchMoveX - prevTouchMoveX) + " ," + "deltaY: " + (currTouchMoveY - prevTouchMoveY) );
+
+                        changeDirection( 'down' );
+                    
+                        resetTouchMoveXY( );
+                    }
+
+                    break;
                 }
-                
-                // reset prevTouchMoveX / Y (so we dont trigger movement in another direction sooner than expected)
-                prevTouchMoveY = currTouchMoveY;
-                prevTouchMoveX = currTouchMoveX;
-            } else if (currTouchMoveY <= prevTouchMoveY - threshold) {
-                // move snake up if snake is not already moving up or down
-                if (snakeMovementDirection !== 'down' || snakeMovementDirection !== 'up') {
-                    changeDirection('up');
+                case 'up': {
+                    console.log("GOING UP" );
+
+                    if ( detectSwipeRight() ) {
+                        console.log("CHANGING TO RIGHT" );
+                        console.log("pX: " + prevTouchMoveX + " pY: " + prevTouchMoveY );
+                        console.log("cX: " + currTouchMoveX + " cY: " + currTouchMoveY );
+                        console.log( "deltaX: " + (currTouchMoveX - prevTouchMoveX) + " ," + "deltaY: " + (currTouchMoveY - prevTouchMoveY) );
+
+                        changeDirection( 'right' );
+                        
+                        resetTouchMoveXY( );
+                    } else if ( detectSwipeLeft() ) {
+
+                        console.log("CHANGING TO LEFT" );
+                        console.log("pX: " + prevTouchMoveX + " pY: " + prevTouchMoveY );
+                        console.log("cX: " + currTouchMoveX + " cY: " + currTouchMoveY );
+                        console.log( "deltaX: " + (currTouchMoveX - prevTouchMoveX) + " ," + "deltaY: " + (currTouchMoveY - prevTouchMoveY) );
+
+                        changeDirection( 'left' );
+                    
+                        resetTouchMoveXY( );
+                    }
+
+                    break;
                 }
-                
-                // reset prevTouchMoveX / Y (so we dont trigger movement in another direction sooner than expected)
-                prevTouchMoveY = currTouchMoveY;
-                prevTouchMoveX = currTouchMoveX;
+                case 'down': {
+                    console.log("GOING DOWN" );
+
+                    if ( detectSwipeRight() ) {
+
+                        console.log("CHANGING TO RIGHT" );
+                        console.log("pX: " + prevTouchMoveX + " pY: " + prevTouchMoveY );
+                        console.log("cX: " + currTouchMoveX + " cY: " + currTouchMoveY );
+                        console.log( "deltaX: " + (currTouchMoveX - prevTouchMoveX) + " ," + "deltaY: " + (currTouchMoveY - prevTouchMoveY) );
+
+                        changeDirection( 'right' );
+
+                        resetTouchMoveXY( );
+                    } else if ( detectSwipeLeft() ) {
+
+                        console.log("CHANGING TO LEFT" );
+                        console.log("pX: " + prevTouchMoveX + " pY: " + prevTouchMoveY );
+                        console.log("cX: " + currTouchMoveX + " cY: " + currTouchMoveY );
+                        console.log( "deltaX: " + (currTouchMoveX - prevTouchMoveX) + " ," + "deltaY: " + (currTouchMoveY - prevTouchMoveY) );
+                        
+                        changeDirection( 'left' );
+
+                        resetTouchMoveXY( );
+                    }
+
+                    break;
+                }
             }
         }
     }, false);
 
-    // event listener for keyboard gameplay 
-    // TODO: remove after debugging is done?
+    // event listener for keyboard gameplay (for debugging)
     document.addEventListener('keydown', function(e) {   
         // Only act on key if in PLAY state
         if ( gameState === STATE_PLAY) {
@@ -234,7 +339,7 @@ function updateSetup(deltaTime) {
                 // left key
                 case 37: {
                     // ensure snake is not traveling right
-                    if (snakeMovementDirection !== 'right') {
+                    if (snakeMovementDirection !== 'right' && snakeMovementDirection !== 'left') {
                         changeDirection('left');
                     }
                     break;
@@ -242,7 +347,7 @@ function updateSetup(deltaTime) {
                 // right key
                 case 39: {
                     // ensure snake is not traveling left
-                    if (snakeMovementDirection !== 'left') {
+                    if (snakeMovementDirection !== 'left' && snakeMovementDirection !== 'right') {
                         changeDirection('right');
                     }
                     break;
@@ -250,7 +355,7 @@ function updateSetup(deltaTime) {
                 // up key
                 case 38: {
                     // ensure snake is not traveling down
-                    if (snakeMovementDirection !== 'down') {
+                    if (snakeMovementDirection !== 'up' && snakeMovementDirection !== 'down') {
                         changeDirection('up');
                     }
                     break;
@@ -258,7 +363,7 @@ function updateSetup(deltaTime) {
                 // down key
                 case 40: {
                     // ensure snake is not traveling up
-                    if (snakeMovementDirection !== 'up') {
+                    if (snakeMovementDirection !== 'down' && snakeMovementDirection !== 'up') {
                         changeDirection('down');
                     }
                     break;
@@ -267,14 +372,15 @@ function updateSetup(deltaTime) {
         }
     });
 
-    // create buttons for start game & view high scores
-    playGameButton = new Button( menuCTX, "black", 5, "green", "PLAY GAME", `"${EIGHT_BIT_FONT_NAME}"`, "18px", "red" );
-    playGameButton.x = (safeWindowWidth - playGameButton.width) / 2;
-    playGameButton.y = 200;
+    // create transparent buttons (rendered under the button images so we can capture the click)
+    // use button image dimensions to set width, height, and location
+    playGameButton = new TransparentButton( menuCTX, ( buttonImages['button-play-game'].width / 2.5 ), (buttonImages['button-play-game'].height / 2.5 ) );
+    playGameButton.x = ( menuCanvas.width - ( buttonImages['button-play-game'].width / 2.5 ) ) / 2;
+    playGameButton.y = ( menuCanvas.height / 2 );
 
-    viewHSButton = new Button( menuCTX, "black", 5, "green", "VIEW HI-SCORES", `"${EIGHT_BIT_FONT_NAME}"`, "18px", "red" );
-    viewHSButton.x = (safeWindowWidth - viewHSButton.width) / 2;
-    viewHSButton.y = 400;
+    viewHSButton = new TransparentButton( menuCTX, ( buttonImages['button-view-high-score'].width / 2.5 ), (buttonImages['button-view-high-score'].height / 2.5 ) );
+    viewHSButton.x = ( menuCanvas.width - ( buttonImages['button-view-high-score'].width / 2.5 ) ) / 2;
+    viewHSButton.y = ( menuCanvas.height / 2 ) + 100;
     
     // and now goto the title screen
     gameState = STATE_TITLE;
@@ -297,6 +403,11 @@ function tickTitle(deltaTime) {
 
 function updateTitle(deltaTime) {
 
+    // ensure menu canvas is displayed and hud and game canvas are hidden
+    $('#menuCanvas').css('display','block');
+    $('#hudCanvas').css('display','none');
+    $('#gameCanvas').css('display','none');
+
     // wait for the play game button to be clicked
     if( playGameButton.wasClicked( mouseClickEvt ) ) {
         gameState = STATE_COUNTDOWN;
@@ -318,13 +429,13 @@ function updateTitle(deltaTime) {
 function renderTitle(deltaTime) {
     clearCanvas( menuCTX, menuCanvas );
 
-    // render title
-    render8bitText( "CCV Snake!", 'black', safeWindowWidth / 2 , 50 );
-
     playGameButton.render( );
     viewHSButton.render( );
 
-    renderDebugInfo( menuCTX );
+    menuCTX.drawImage( buttonImages['button-play-game'], ( menuCanvas.width - ( buttonImages['button-play-game'].width / 2.5 ) ) / 2, ( menuCanvas.height / 2), buttonImages['button-play-game'].width / 2.5, buttonImages['button-play-game'].height / 2.5 );
+    menuCTX.drawImage( buttonImages['button-view-high-score'], ( menuCanvas.width - ( buttonImages['button-view-high-score'].width / 2.5 ) ) / 2, ( menuCanvas.height / 2 ) + 100, buttonImages['button-view-high-score'].width / 2.5, buttonImages['button-view-high-score'].height / 2.5 );
+
+    renderMenuDebugInfo( );
 }
 // ------------
 /* END STATE TITLE */
@@ -332,8 +443,6 @@ function renderTitle(deltaTime) {
 
 /* STATE: COUNTDOWN */
 // ------------
-let countdownTimer = 3;
-let elapsedTimer = 0;
 
 function tickCountdown(deltaTime) {
 
@@ -344,23 +453,24 @@ function tickCountdown(deltaTime) {
 function updateCountdown(deltaTime) {
 
     // set game starting values if not already set
-    if (gameVariablesSet !== true) {
+    if ( gameVariablesSet !== true ) {
         setDefaultGameVariables();
     }
 
     // create food if its not created
-    if (!foodX || !foodY) {
+    if ( !foodX || !foodY ) {
         createFood();
     }
-
+    
     // do the 3...2...1 thang
     countdownTimer -= deltaTime;
+    
+    // when counter gets to 0, change to STATE_PLAY
     if( countdownTimer <= 0 ) {
         gameState = STATE_PLAY;
 
-        // reset the countdown for the next playthru
-        countdownTimer += 3.0;
     }
+
 }
 
 function renderCountdown(deltaTime) {
@@ -374,9 +484,9 @@ function renderCountdown(deltaTime) {
     roundedTimer = Math.max( 1, roundedTimer );
 
     // render countdown
-    render8bitText( roundedTimer, 'black', safeWindowWidth / 2, safeWindowHeight / 2 );
+    render8bitText( roundedTimer, 'white', safeWindowWidth / 2, ( safeWindowHeight / 2 ) + 70, '65px' );
     
-    renderDebugInfo( menuCTX );
+    renderMenuDebugInfo( );
 }
 // ------------
 /* END STATE COUNTDOWN */
@@ -384,7 +494,6 @@ function renderCountdown(deltaTime) {
 
 /* STATE: PLAY */
 // ------------
-let playTimer = 0;
 
 function tickPlay(deltaTime) {
 
@@ -398,10 +507,20 @@ function tickPlay(deltaTime) {
     
         // reset playTimer to 0
         playTimer -= 33 / gameSpeed;
+
+        console.log("pX: " + prevTouchMoveX + " pY: " + prevTouchMoveY );
+        console.log("cX: " + currTouchMoveX + " cY: " + currTouchMoveY );
+        console.log("movementDir: " + snakeMovementDirection );
     }
 }
 
 function updatePlay(deltaTime) {
+
+    // ensure game canvas and hud are displayed and menu canvas is hid
+    $('#hudCanvas').css('display','block');
+    $('#gameCanvas').css('display','block');
+    $('#menuCanvas').css('display','none');
+
 
     advanceSnake();
 
@@ -423,7 +542,7 @@ function renderPlay(deltaTime) {
     drawFood();
     drawHUD();
     
-    //renderDebugInfo( gameCanvas );
+    renderGameDebugInfo( );
 }
 // ------------
 /* END STATE PLAY */
@@ -450,37 +569,33 @@ function updateWinddown(deltaTime) {
     winddownTimer += deltaTime;
 
     // when it gets to or past 5 seconds, change states
-    if( winddownTimer >= 5.00 ) {
+    if( winddownTimer >= 4.00 ) {
         gameState = STATE_GAMEOVER;
 
-        submitHSButton = new Button( menuCTX, "black", 5, "green", "SUBMIT SCORE", `"${EIGHT_BIT_FONT_NAME}"`, "18px", "red" );
-        submitHSButton.x = (safeWindowWidth - submitHSButton.width) / 2;
-        submitHSButton.y = 200;
+        // create transparent button to capture clicks
+        submitHSButton = new TransparentButton( menuCTX, ( buttonImages['button-submit-score'].width / 2.25 ), (buttonImages['button-submit-score'].height / 2.25 ) );
+        submitHSButton.x = ( menuCanvas.width - ( buttonImages['button-submit-score'].width / 2.25 ) ) / 2;
+        submitHSButton.y = ( menuCanvas.height / 2 );
 
-         playAgainButton = new Button( menuCTX, "black", 5, "green", "PLAY AGAIN", `"${EIGHT_BIT_FONT_NAME}"`, "18px", "red" );
-         playAgainButton.x = (safeWindowWidth - playAgainButton.width) / 2;
-         playAgainButton.y = 400;
+        playAgainButton = new TransparentButton( menuCTX, ( buttonImages['button-play-again'].width / 2.25 ), (buttonImages['button-play-again'].height / 2.25 ) );
+        playAgainButton.x = ( menuCanvas.width - ( buttonImages['button-play-again'].width / 2.25 ) ) / 2;
+        playAgainButton.y = ( menuCanvas.height / 2 ) + 100;
 
         // reset the timer so that the next time this state is run, the timer is 0 again.
-        winddownTimer -= 5.00;
+        winddownTimer -= 4.00;
     }
 }
 
 function renderWinddown(deltaTime) {
 
-    // wait 2s before rendering winddown (so player sees where they failed at)
-    if (winddownTimer >= 2.00) {
+    // ensure menu canvas is displayed and hud and game canvas are hidden
+    $('#menuCanvas').css('display','block');
+    $('#hudCanvas').css('display','none');
+    $('#gameCanvas').css('display','none');
 
-        displayMenu();
-
-        clearCanvas( menuCTX, menuCanvas );
-
-        render8bitText( "Dead.", 'black', safeWindowWidth / 2, 50 );
-        render8bitText( "Score", 'black', safeWindowWidth / 2, 100 );
-        render8bitText( playerScore, 'black', safeWindowWidth / 2, 150 );    
-    }
+    clearCanvas( menuCTX, menuCanvas );
     
-    renderDebugInfo( menuCTX );
+    renderMenuDebugInfo(  );
 }
 // ------------
 /* END STATE WINDDOWN */
@@ -519,13 +634,17 @@ function renderGameover(deltaTime) {
 
     clearCanvas( menuCTX, menuCanvas );
 
-    render8bitText( "Game Over", 'black', safeWindowWidth / 2, 50 );
-    render8bitText( "Your Score: " + playerScore, 'black', safeWindowWidth / 2, 100 );
+    render8bitText( "Your Score", 'white', safeWindowWidth / 2, (menuCanvas.height / 2) - 125, '24px' );
+    render8bitText( playerScore, 'white', safeWindowWidth / 2, (menuCanvas.height / 2) - 75, '24px' );
     
-    submitHSButton.render(menuCTX);
-    playAgainButton.render(menuCTX);
+    submitHSButton.render( );
+    playAgainButton.render( );
 
-    renderDebugInfo( menuCTX );
+    menuCTX.drawImage( buttonImages['button-submit-score'], ( menuCanvas.width - ( buttonImages['button-submit-score'].width / 2.25 ) ) / 2, ( menuCanvas.height / 2), buttonImages['button-submit-score'].width / 2.25, buttonImages['button-submit-score'].height / 2.25 );
+    menuCTX.drawImage( buttonImages['button-play-again'], ( menuCanvas.width - ( buttonImages['button-play-again'].width / 2.25 ) ) / 2, ( menuCanvas.height / 2) + 100, buttonImages['button-play-again'].width / 2.25, buttonImages['button-play-again'].height / 2.25 );
+
+
+    renderMenuDebugInfo( );
 }
 // ------------
 /* END STATE GAMEOVER */
@@ -582,7 +701,7 @@ function updateSubmitScore(deltaTime) {
 
 function renderSubmitScore( deltaTime ) {
     
-    renderDebugInfo( menuCTX );
+    renderMenuDebugInfo( );
 }
 // ------------
 /* END STATE SUBMIT SCORE */
@@ -625,31 +744,42 @@ function clearCanvas( ctx, canvas ) {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    ctx.strokeStyle = 0;
-    ctx.strokeRect(0, 0, canvas.width, canvas.height);
 }
 
-function renderDebugInfo( ctx ) {
+function setBackgroundImage( currGameState ) {
+    let backgroundUrl = '';
 
-    ctx.fillStyle = 'black';
-    ctx.fillRect( 0, gameCanvas.height - 50, gameCanvas.width, 50 );
+    switch( currGameState ) {
+        case STATE_PLAY: backgroundUrl = "url('./assets/backgrounds/background-game-level.jpg')"; break;
+        case STATE_WINDDOWN: backgroundUrl = "url('./assets/backgrounds/background-game-dead.jpg')"; break;
+        case STATE_GAMEOVER: backgroundUrl = "url('./assets/backgrounds/background-game-over.jpg')"; break;
+        default: backgroundUrl = "url('./assets/backgrounds/background-title-screen.jpg')"; break;
+    }
+
+    $('body').css('background-image',backgroundUrl);
+}
+
+function renderMenuDebugInfo( ) {
+
+    menuCTX.fillStyle = 'black';
+    menuCTX.fillRect( 0, menuCanvas.height - 50, menuCanvas.width, 50 );
 
     // backup curr values
-    let currFillStyle = ctx.fillStyle;
-    let currFont = ctx.font;
-    let currAllign = ctx.textAlign;
+    let currFillStyle = menuCTX.fillStyle;
+    let currFont = menuCTX.font;
+    let currAllign = menuCTX.textAlign;
 
-    ctx.fillStyle = 'white';
-    ctx.font = "12px Arial";
-    ctx.textAlign = 'left';
+    menuCTX.fillStyle = 'white';
+    menuCTX.font = "12px Arial";
+    menuCTX.textAlign = 'left';
 
-    ctx.fillText( "Debug Info -", 0, gameCanvas.height - 40 );
-    ctx.fillText( "State: " + gameState, 80, gameCanvas.height - 40 );
+    menuCTX.fillText( "Debug Info -", 0, menuCanvas.height - 40 );
+    menuCTX.fillText( "State: " + gameState, 80, menuCanvas.height - 40 );
 
     // restore previous values
-    ctx.fillStyle = currFillStyle;
-    ctx.font = currFont;
-    ctx.textAlign = currAllign;
+    menuCTX.fillStyle = currFillStyle;
+    menuCTX.font = currFont;
+    menuCTX.textAlign = currAllign;
 }
 
 function getMousePos(menuCanvas, evt) {
@@ -681,37 +811,19 @@ function resetInputEvents() {
     leaderboardViewingDoneClicked = false;
 }
 
-function render8bitText( renderText, color, posX, posY ) {
+function render8bitText( renderText, color, posX, posY, fontSize = '20px' ) {
 
     // backup curr values
     let currFillStyle = menuCTX.fillStyle;
     let currFont = menuCTX.font;
 
     menuCTX.fillStyle = color;
-    menuCTX.font = `20px "${EIGHT_BIT_FONT_NAME}"`;
+    menuCTX.font = `${fontSize} "${EIGHT_BIT_FONT_NAME}"`;
     menuCTX.fillText( renderText, posX, posY );
 
     // restore previous values
     menuCTX.fillStyle = currFillStyle;
     menuCTX.font = currFont;
-}
-
-function displayMenu() {
-
-    // display menu
-    $('#menuCanvas').css('display','block');
-    // hide hud and game canvas
-    $('#hudCanvas').css('display','none');
-    $('#gameCanvas').css('display','none');
-}
-
-function displayGame() {
-
-    // hide menu canvas
-    $('#menuCanvas').css('display','none');
-    // display hud and game canvas
-    $('#hudCanvas').css('display','block');
-    $('#gameCanvas').css('display','block');
 }
 
 function onSubmitHiscore() {
@@ -735,22 +847,26 @@ function onLeaderboardViewingDone() {
 // Set default values of game variables
 function setDefaultGameVariables() {
     playerScore = 0;
+    countdownTimer = 3;
+    playTimer = 0;
     gameRound = 1;
-    gameSpeed = GAME_SPEED
-    foodConsumed = 0;
+    gameSpeed = GAME_SPEED;
     snake = [
-        {x: 150, y: 150},
-        {x: 140, y: 150},
-        {x: 130, y: 150},
-        {x: 120, y: 150},
-        {x: 110, y: 150},
+        {x: 140, y: 140},
+        {x: 120, y: 140},
+        {x: 100, y: 140},
+        {x: 80, y: 140},
+        {x: 60, y: 140},
     ];
     snakeMovementDirection = 'right';
     snakeChangingDirection = false;
-    snakeDirectionX = 10;
+    snakeDirectionX = 20;
     snakeDirectionY = 0;
     foodX = null;
     foodY = null;
+    foodConsumed = 0;
+    foodImage = null;
+    foodImageSet = foodImages;
     hudRound = null;
     hudScore = null;
     prevTouchMoveX = null;
@@ -763,10 +879,11 @@ function setDefaultGameVariables() {
 function clearGameVariables() {
     // Game Play
     gameVariablesSet = false;
+    countdownTimer = 3;
+    playTimer = 0;
     playerScore = null;
     gameRound = null;
     gameSpeed = null;
-    foodConsumed = null;
     snake = null;
     snakeMovementDirection = null;
     snakeChangingDirection = null;
@@ -774,6 +891,9 @@ function clearGameVariables() {
     snakeDirectionY = null;
     foodX = null;
     foodY = null;
+    foodConsumed = null;
+    foodImageSet = null;
+    foodImage = null;
     hudRound = null;
     hudScore = null;
     prevTouchMoveX = null;
@@ -790,11 +910,14 @@ function updateHUD() {
 // Create Food
 function createFood() {
 
-    // Generate food (inside playing field)
-    foodX = randomTen(0, gameCanvas.width);
-    foodY = randomTen(0, gameCanvas.height);
+    // Generate food coordinates (inside playing field)
+    foodX = returnRandom( 0, gameCanvas.width, 20 );
+    foodY = returnRandom( 0, gameCanvas.height, 20 );
 
-    // Check if food was created where the snake is, if so try the creation
+    // select a random image 
+    foodImage = returnRandomImage(foodImageSet);
+
+    // Check if food was created where the snake is, if so try the creation again
     snake.forEach(function isFoodOnSnake(part) {
         const foodIsOnSnake = part.x == foodX && part.y == foodY;
 
@@ -808,37 +931,60 @@ function createFood() {
 function drawHUD() {
 
     // draw hud text
-    hudCTX.fillStyle = "black";
-    hudCTX.font = `14px "${EIGHT_BIT_FONT_NAME}"`;
+    hudCTX.fillStyle = "white";
+    hudCTX.font = `20px "${EIGHT_BIT_FONT_NAME}"`;
     hudCTX.textAlign = "left";
-    hudCTX.fillText( "Round: " + hudRound, 10, 20);
+    hudCTX.fillText( "Round:" + hudRound, 10, 27) ;
     hudCTX.textAlign = "right";
-    hudCTX.fillText( "Score: " + hudScore, safeWindowWidth - 10, 20);
+    hudCTX.fillText( hudScore, hudCanvas.width - 10, 27);
 }
 
 // Draw snake
 function drawSnake() {
 
-    snake.forEach(drawSnakePart);
+    for (i = 0; i < snake.length; i++) {
+        if ( i === 0 ) {
+            drawSnakeHead( snake[i] );
+        } else if ( i % 2 == 0) {
+            drawSnakeBodyPart( snake[i], false );
+        } else {
+            drawSnakeBodyPart( snake[i], true );
+        }
+    }
+//    snake.forEach(drawSnakePart);
+}
+
+// Draw snake head
+function drawSnakeHead(snakePart) {
+
+    gameCTX.drawImage(snakeImages['snake-head'], snakePart.x, snakePart.y, 20, 20);
+
 }
 
 // Draw snake part
-function drawSnakePart(snakePart) {
+function drawSnakeBodyPart(snakePart, alternate) {
 
-    gameCTX.fillStyle = SNAKE_COLOR;
-    gameCTX.strokeStyle = SNAKE_BORDER_COLOR;
-
-    gameCTX.fillRect(snakePart.x, snakePart.y, 10, 10);
-    gameCTX.strokeRect(snakePart.x, snakePart.y, 10, 10);
+    if ( !alternate ) {
+        gameCTX.drawImage(snakeImages['snake-body-a'], snakePart.x, snakePart.y, 20, 20);
+    } else {
+        gameCTX.drawImage(snakeImages['snake-body-b'], snakePart.x, snakePart.y, 20, 20);
+    }
 }
 
 // Draw food
 function drawFood() {
 
-    gameCTX.fillStyle = FOOD_COLOR;
-    gameCTX.strokeStyle = FOOD_BORDER_COLOR;
-    gameCTX.fillRect(foodX, foodY, 10, 10);
-    gameCTX.strokeRect(foodX, foodY, 10, 10);
+    // draw an image of food, otherwise draw a blank square 
+    // TODO: do we need this kind of backup or is drawing an image good enough?
+    if (foodImage) {
+        gameCTX.drawImage(foodImage, foodX, foodY, 20, 20);
+    } else {
+        gameCTX.fillStyle = FOOD_COLOR;
+        gameCTX.strokeStyle = FOOD_BORDER_COLOR;
+        gameCTX.fillRect(foodX, foodY, 20, 20);
+        gameCTX.strokeRect(foodX, foodY, 20, 20);
+    }
+
 }
 
 // Advance the snake forward
@@ -853,9 +999,9 @@ function advanceSnake() {
     // add new head location to snake
     snake.unshift(head);
 
-    if (checkFoodEaten()) {
+    if (detectFoodEaten()) {
         // ate food, increase score, create new food, and do NOT remove last part of snake
-        playerScore += 10;
+        playerScore += 100;
 
         // vibrate the device
         Haptics.vibrate(200);
@@ -868,7 +1014,7 @@ function advanceSnake() {
 }
 
 // check if the snake head is on food
-function checkFoodEaten() {
+function detectFoodEaten() {
 
     if ( snake[0].x === foodX && snake[0].y === foodY ) {
         // food consumed, increase count
@@ -876,10 +1022,21 @@ function checkFoodEaten() {
 
         // increase round if 5 food consumed
         if (foodConsumed === 5) {
+            // select a new food image set
+            if ( foodImageSet === foodImages ) {
+                foodImageSet = candyImages;
+            } else if ( foodImageSet === candyImages ) {
+                foodImageSet = giftImages;
+            } else if ( foodImageSet === giftImages ) {
+                foodImageSet = currencyImages;
+            } else if ( foodImageSet === currencyImages ) {
+                foodImageSet = foodImages;
+            }
+
             // increase gameRound
             gameRound++;
             // increase gameSpeed
-            gameSpeed += 100;
+            gameSpeed += 25;
 
             // reset foodConsumed
             foodConsumed = 0;
@@ -922,26 +1079,26 @@ function changeDirection(direction) {
         switch(direction) {
             case 'left': {
                 snakeMovementDirection = 'left';
-                snakeDirectionX = -10;
+                snakeDirectionX = -20;
                 snakeDirectionY = 0;
                 break;
             }
             case 'right': {
                 snakeMovementDirection = 'right';
-                snakeDirectionX = 10;
+                snakeDirectionX = 20;
                 snakeDirectionY = 0;
                 break;
             }
             case 'up': {
                 snakeMovementDirection = 'up';
                 snakeDirectionX = 0;
-                snakeDirectionY = -10; 
+                snakeDirectionY = -20; 
                 break;
             }
             case 'down': {
                 snakeMovementDirection = 'down';
                 snakeDirectionX = 0;
-                snakeDirectionY = 10;
+                snakeDirectionY = 20;
                 break;
             }
             default: {
@@ -951,10 +1108,137 @@ function changeDirection(direction) {
     }
 }
 
-// Generate a random number
-function randomTen(min, max) {
+// Generate a random number by intervals
+// wasnt sure if using name random() would cause issues with some default function I dont know about
+function returnRandom(min, max, interval) {
 
-    return Math.round((Math.random() * (max-min) + min) /10) * 10;
+    return min + ( interval * Math.floor(Math.random() * ( max-min ) / interval ) );
 }
+
+// return a random image from image associative array
+function returnRandomImage( object ) {
+
+    let keys = Object.keys(object);
+
+    return object[keys[Math.floor(keys.length * Math.random())]];
+}
+
+// Load game asset images into image arrays
+function loadImages() {
+    // buttons
+    loadImage( buttonImages, 'button-play-game');
+    loadImage( buttonImages, 'button-play-again');
+    loadImage( buttonImages, 'button-submit-score');
+    loadImage( buttonImages, 'button-view-high-score');
+    loadImage( buttonImages, 'button-done');
+
+    // snake
+    loadImage( snakeImages, 'snake-head');
+    loadImage( snakeImages, 'snake-body-a');
+    loadImage( snakeImages, 'snake-body-b');
+
+    // food
+    loadImage( foodImages, 'food-apple-green');
+    loadImage( foodImages, 'food-apple-red');
+    loadImage( foodImages, 'food-cherry');
+    loadImage( foodImages, 'food-cookie');
+    loadImage( foodImages, 'food-lemon');
+    loadImage( foodImages, 'food-meat');
+    loadImage( foodImages, 'food-strawberry');
+
+    // candy
+    loadImage( candyImages, 'candy-cane-blue');
+    loadImage( candyImages, 'candy-cane-green');
+    loadImage( candyImages, 'candy-cane-grinch');
+    loadImage( candyImages, 'candy-cane-orange');
+    loadImage( candyImages, 'candy-cane-pink');
+    loadImage( candyImages, 'candy-cane-purple');
+    loadImage( candyImages, 'candy-cane-red');
+
+    // gift
+    loadImage( giftImages, 'gift-green');
+    loadImage( giftImages, 'gift-purple');
+    loadImage( giftImages, 'gift-red');
+    loadImage( giftImages, 'gift-yellow');
+    
+    // currency
+    loadImage( currencyImages, 'currency-coin-gold');
+    loadImage( currencyImages, 'currency-coin-silver');
+    loadImage( currencyImages, 'currency-ruby-blue');
+    loadImage( currencyImages, 'currency-ruby-green');
+    loadImage( currencyImages, 'currency-ruby-orange');
+    loadImage( currencyImages, 'currency-ruby-red');
+}
+
+// load image into imageArray
+function loadImage( imageArray, name ) {
+
+    imageArray[name] = new Image();
+    imageArray[name].onload = function() {
+        // once image loads, increase loaded count
+        numLoadedImages++;
+    };
+
+    imageArray[name].src = "./assets/images/" + name + ".png";
+}
+
+// Debug info while playing the game
+function renderGameDebugInfo( ) {
+
+    gameCTX.fillStyle = 'black';
+    gameCTX.fillRect( 0, gameCanvas.height - 50, gameCanvas.width, 50 );
+
+    // backup curr values
+    let currFillStyle = gameCTX.fillStyle;
+    let currFont = gameCTX.font;
+    let currAllign = gameCTX.textAlign;
+
+    gameCTX.fillStyle = 'white';
+    gameCTX.font = "12px Arial";
+    gameCTX.textAlign = 'left';
+
+    gameCTX.fillText( "Debug Info -", 0, gameCanvas.height - 40 );
+    gameCTX.fillText( "State: " + gameState, 80, gameCanvas.height - 40 );
+    gameCTX.fillText( "prevTouchMoveX: " + prevTouchMoveX, 0, gameCanvas.height - 30 );
+    gameCTX.fillText( "currTouchMoveX: " + currTouchMoveX, 200, gameCanvas.height - 30 );
+    gameCTX.fillText( "prevTouchMoveY: " + prevTouchMoveY, 0, gameCanvas.height - 20 );
+    gameCTX.fillText( "currTouchMoveY: " + currTouchMoveY, 200, gameCanvas.height - 20 );
+    gameCTX.fillText( "snakeX: " +snake[0].x, 0, gameCanvas.height -10)
+    gameCTX.fillText( "snakeY: " +snake[0].y, 80, gameCanvas.height -10)
+
+    // restore previous values
+    gameCTX.fillStyle = currFillStyle;
+    gameCTX.font = currFont;
+    gameCTX.textAlign = currAllign;
+}
+
+// check for right swipe
+function detectSwipeRight( ) {
+    return currTouchMoveX >= ( prevTouchMoveX + TOUCH_THRESHOLD );
+}
+
+// check for left swipe
+function detectSwipeLeft( ) {
+    return currTouchMoveX <= ( prevTouchMoveX - TOUCH_THRESHOLD );
+}
+
+// check for down swipe
+function detectSwipeDown( ) {
+    return currTouchMoveY >= ( prevTouchMoveY + TOUCH_THRESHOLD );
+}
+
+// check for up swipe
+function detectSwipeUp( ) {
+    return currTouchMoveY <= ( prevTouchMoveY - TOUCH_THRESHOLD );
+}
+
+// reset previous touch
+function resetTouchMoveXY( ) {
+    prevTouchMoveX = null;
+    currTouchMoveX = null;
+    prevTouchMoveY = null; 
+    currTouchMoveY = null;
+}
+
 // ------------
 /*END GAME UTILITY*/

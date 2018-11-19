@@ -1,4 +1,39 @@
 
+function TransparentButton( canvasCTX, width, height ) {
+    
+    this.canvasCTX = canvasCTX;
+
+    // x/y can be set by the caller later
+    this.x = 0;
+    this.y = 0;
+
+    // set width & height
+    this.width = width;
+    this.height = height;
+}
+
+TransparentButton.prototype.render = function( ) {
+    
+    // render transparent background
+    this.canvasCTX.fillStyle = 'rgba(0,0,0,0)';
+    this.canvasCTX.fillRect( this.x, this.y, this.width, this.height);
+}
+
+TransparentButton.prototype.wasClicked = function( mouseClickEvt ) {
+    if( mouseClickEvt.clicked ) {
+        //see if the point was inside the button rect
+
+        // make sure the mouse point that was clicked was greater than the left edge of the button and less than the right edge
+        // and make sure it was greater than the top edge and less than the button edge.
+        if( mouseClickEvt.x > this.x && mouseClickEvt.x < (this.x + this.width) && 
+            mouseClickEvt.y > this.y && mouseClickEvt.y < (this.y + this.height) ) {
+                return true;
+            }
+    }
+
+    return false;
+}
+
 function Button( canvasCTX, bgColor, borderWidth, borderColor, label, fontName, fontSize, fontColor ) {
     
     this.canvasCTX = canvasCTX;
@@ -87,3 +122,4 @@ Button.prototype.wasClicked = function( mouseClickEvt ) {
 
     return false;
 }
+
