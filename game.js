@@ -191,6 +191,8 @@ function updateSetup(deltaTime) {
 
         // only process direction change if game state play and snake is not already changing direction
         if ( gameState === STATE_PLAY && snakeChangingDirection === false) {
+            
+            console.log( "input received" );
 
             // get the x/y of current touch event
             currTouchMoveX = event.changedTouches[0].screenX;
@@ -205,7 +207,12 @@ function updateSetup(deltaTime) {
             }
 
             // check if touch was too far out of range (so taps dont register as swipe)
-            if ( Math.abs( currTouchMoveX ) > Math.abs( prevTouchMoveX + ( TOUCH_THRESHOLD * 2 ) ) || Math.abs( currTouchMoveY ) > Math.abs( prevTouchMoveY + ( TOUCH_THRESHOLD * 2 ) )  ) {
+            if ( Math.abs( currTouchMoveX - prevTouchMoveX ) > Math.abs( ( TOUCH_THRESHOLD * 2 ) ) || Math.abs( currTouchMoveY - prevTouchMoveY ) > Math.abs( ( TOUCH_THRESHOLD * 2 ) )  ) {
+
+                console.log("EARLY OUT - BAD TOUCH" );
+                console.log("pX: " + prevTouchMoveX + " pY: " + prevTouchMoveY );
+                console.log("cX: " + currTouchMoveX + " cY: " + currTouchMoveY );
+                
                 // reset previous touch X/Y 
                 resetTouchMoveXY();               
 
@@ -215,12 +222,23 @@ function updateSetup(deltaTime) {
 
             switch ( snakeMovementDirection ) {
                 case 'right': {
+                    console.log("GOING RIGHT" );
+
                     if ( detectSwipeUp() ) {
+                        console.log("CHANGING TO UP" );
+                        console.log("pX: " + prevTouchMoveX + " pY: " + prevTouchMoveY );
+                        console.log("cX: " + currTouchMoveX + " cY: " + currTouchMoveY );
+                        console.log( "deltaX: " + (currTouchMoveX - prevTouchMoveX) + " ," + "deltaY: " + (currTouchMoveY - prevTouchMoveY) );
 
                         changeDirection( 'up' );
 
                         resetTouchMoveXY( );
                     } else if ( detectSwipeDown() ) {
+
+                        console.log("CHANGING TO DOWN" );
+                        console.log("pX: " + prevTouchMoveX + " pY: " + prevTouchMoveY );
+                        console.log("cX: " + currTouchMoveX + " cY: " + currTouchMoveY );
+                        console.log( "deltaX: " + (currTouchMoveX - prevTouchMoveX) + " ," + "deltaY: " + (currTouchMoveY - prevTouchMoveY) );
 
                         changeDirection( 'down' );
 
@@ -230,12 +248,24 @@ function updateSetup(deltaTime) {
                     break; 
                 } 
                 case 'left': { 
+                    console.log("GOING LEFT" );
+
                     if ( detectSwipeUp() ) {
+
+                        console.log("CHANGING TO UP" );
+                        console.log("pX: " + prevTouchMoveX + " pY: " + prevTouchMoveY );
+                        console.log("cX: " + currTouchMoveX + " cY: " + currTouchMoveY );
+                        console.log( "deltaX: " + (currTouchMoveX - prevTouchMoveX) + " ," + "deltaY: " + (currTouchMoveY - prevTouchMoveY) );
 
                         changeDirection( 'up' );
 
                         resetTouchMoveXY( );
                     } else if ( detectSwipeDown() ) {
+
+                        console.log("CHANGING TO DOWN" );
+                        console.log("pX: " + prevTouchMoveX + " pY: " + prevTouchMoveY );
+                        console.log("cX: " + currTouchMoveX + " cY: " + currTouchMoveY );
+                        console.log( "deltaX: " + (currTouchMoveX - prevTouchMoveX) + " ," + "deltaY: " + (currTouchMoveY - prevTouchMoveY) );
 
                         changeDirection( 'down' );
                     
@@ -245,12 +275,23 @@ function updateSetup(deltaTime) {
                     break;
                 }
                 case 'up': {
+                    console.log("GOING UP" );
+
                     if ( detectSwipeRight() ) {
+                        console.log("CHANGING TO RIGHT" );
+                        console.log("pX: " + prevTouchMoveX + " pY: " + prevTouchMoveY );
+                        console.log("cX: " + currTouchMoveX + " cY: " + currTouchMoveY );
+                        console.log( "deltaX: " + (currTouchMoveX - prevTouchMoveX) + " ," + "deltaY: " + (currTouchMoveY - prevTouchMoveY) );
 
                         changeDirection( 'right' );
                         
                         resetTouchMoveXY( );
                     } else if ( detectSwipeLeft() ) {
+
+                        console.log("CHANGING TO LEFT" );
+                        console.log("pX: " + prevTouchMoveX + " pY: " + prevTouchMoveY );
+                        console.log("cX: " + currTouchMoveX + " cY: " + currTouchMoveY );
+                        console.log( "deltaX: " + (currTouchMoveX - prevTouchMoveX) + " ," + "deltaY: " + (currTouchMoveY - prevTouchMoveY) );
 
                         changeDirection( 'left' );
                     
@@ -260,12 +301,24 @@ function updateSetup(deltaTime) {
                     break;
                 }
                 case 'down': {
+                    console.log("GOING DOWN" );
+
                     if ( detectSwipeRight() ) {
+
+                        console.log("CHANGING TO RIGHT" );
+                        console.log("pX: " + prevTouchMoveX + " pY: " + prevTouchMoveY );
+                        console.log("cX: " + currTouchMoveX + " cY: " + currTouchMoveY );
+                        console.log( "deltaX: " + (currTouchMoveX - prevTouchMoveX) + " ," + "deltaY: " + (currTouchMoveY - prevTouchMoveY) );
 
                         changeDirection( 'right' );
 
                         resetTouchMoveXY( );
                     } else if ( detectSwipeLeft() ) {
+
+                        console.log("CHANGING TO LEFT" );
+                        console.log("pX: " + prevTouchMoveX + " pY: " + prevTouchMoveY );
+                        console.log("cX: " + currTouchMoveX + " cY: " + currTouchMoveY );
+                        console.log( "deltaX: " + (currTouchMoveX - prevTouchMoveX) + " ," + "deltaY: " + (currTouchMoveY - prevTouchMoveY) );
                         
                         changeDirection( 'left' );
 
@@ -454,6 +507,10 @@ function tickPlay(deltaTime) {
     
         // reset playTimer to 0
         playTimer -= 33 / gameSpeed;
+
+        console.log("pX: " + prevTouchMoveX + " pY: " + prevTouchMoveY );
+        console.log("cX: " + currTouchMoveX + " cY: " + currTouchMoveY );
+        console.log("movementDir: " + snakeMovementDirection );
     }
 }
 
