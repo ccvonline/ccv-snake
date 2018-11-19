@@ -1,5 +1,5 @@
 // Constants
-const GAME_SPEED = 200;
+const SNAKE_UPDATE_FREQUENCY_SEC = .33;
 const SNAKE_COLOR = 'lightgreen';
 const SNAKE_BORDER_COLOR = 'darkgreen';
 const FOOD_COLOR = 'red';
@@ -62,7 +62,7 @@ let countdownTimer = 3;
 let playTimer = 0;
 let playerScore = null;
 let gameRound = null;
-let gameSpeed = null;
+let snakeUpdateFrequencyScaler = null;
 let detectingSwipe = false;
 let startTouchMoveX = null;
 let startTouchMoveY = null;
@@ -413,15 +413,10 @@ function tickPlay(deltaTime) {
 
     playTimer += deltaTime;
 
-    // use playTimer to control speed of game.  
-    //TODO: Better way?
-    if ( playTimer >= 33 / gameSpeed) {
-        updatePlay(deltaTime);
-        renderPlay(deltaTime);
+    updatePlay(deltaTime);
+    renderPlay(deltaTime);
     
-        // reset playTimer to 0
-        playTimer -= 33 / gameSpeed;
-    }
+
 }
 
 function updatePlay(deltaTime) {
@@ -431,8 +426,22 @@ function updatePlay(deltaTime) {
     $('#gameCanvas').css('display','block');
     $('#menuCanvas').css('display','none');
 
+    if ( playTimer >= ( SNAKE_UPDATE_FREQUENCY_SEC * snakeUpdateFrequencyScaler ) ) {
+        advanceSnake();
 
-    advanceSnake();
+        // Check for Level Up
+        if ( foodConsumed === 2 ) {
+
+            // level up
+            levelUp( );
+
+            // reset foodConsumed
+            foodConsumed = 0;
+        }
+        
+        // reset playTimer to 0
+        playTimer -= ( SNAKE_UPDATE_FREQUENCY_SEC * snakeUpdateFrequencyScaler );
+    }
 
     if ( detectCollision() ) {
         gameState = STATE_WINDDOWN;
@@ -760,7 +769,7 @@ function setDefaultGameVariables() {
     countdownTimer = 3;
     playTimer = 0;
     gameRound = 1;
-    gameSpeed = GAME_SPEED;
+    snakeUpdateFrequencyScaler = .7;
     startTouchMoveX = null;
     startTouchMoveY = null;
     endTouchMoveX = null; 
@@ -796,7 +805,7 @@ function clearGameVariables() {
     playTimer = 0;
     playerScore = null;
     gameRound = null;
-    gameSpeed = null;
+    snakeUpdateFrequencyScaler = null;
     startTouchMoveX = null;
     startTouchMoveY = null;
     endTouchMoveX = null; 
@@ -815,6 +824,27 @@ function clearGameVariables() {
     hudRound = null;
     hudScore = null;
 }
+
+// Level Up
+function levelUp( ) {
+    // select a new food image set
+    if ( foodImageSet === foodImages ) {
+        foodImageSet = candyImages;
+    } else if ( foodImageSet === candyImages ) {
+        foodImageSet = giftImages;
+    } else if ( foodImageSet === giftImages ) {
+        foodImageSet = currencyImages;
+    } else if ( foodImageSet === currencyImages ) {
+        foodImageSet = foodImages;
+    }
+
+    // increase gameRound
+    gameRound++;
+
+    // increase snake speed
+    snakeUpdateFrequencyScaler -= .1;
+}
+
 
 // Update HUD data
 function updateHUD() {
@@ -912,10 +942,14 @@ function advanceSnake() {
     // Direction change complete, allow input for next change
     snakeChangingDirection = false;
 
-    // add new head location to snake
-    snake.unshift(head);
+    // add new head location to front of snake array
+    snake.unshift( head );
 
-    if (detectFoodEaten()) {
+    if ( detectFoodEaten() ) {
+
+        // food consumed, increase count
+        foodConsumed++;
+
         // ate food, increase score, create new food, and do NOT remove last part of snake
         playerScore += 100;
 
@@ -932,36 +966,7 @@ function advanceSnake() {
 // check if the snake head is on food
 function detectFoodEaten() {
 
-    if ( snake[0].x === foodX && snake[0].y === foodY ) {
-        // food consumed, increase count
-        foodConsumed++;
-
-        // increase round if 5 food consumed
-        if (foodConsumed === 5) {
-            // select a new food image set
-            if ( foodImageSet === foodImages ) {
-                foodImageSet = candyImages;
-            } else if ( foodImageSet === candyImages ) {
-                foodImageSet = giftImages;
-            } else if ( foodImageSet === giftImages ) {
-                foodImageSet = currencyImages;
-            } else if ( foodImageSet === currencyImages ) {
-                foodImageSet = foodImages;
-            }
-
-            // increase gameRound
-            gameRound++;
-            // increase gameSpeed
-            gameSpeed += 25;
-
-            // reset foodConsumed
-            foodConsumed = 0;
-        }
-        return true;
-    }
-
-    // food not consumed
-    return false;
+    return ( snake[0].x === foodX && snake[0].y === foodY );
 }
 
 // Detect collision
@@ -980,14 +985,14 @@ function detectCollision() {
     const hitTopWall = snake[0].y < 0;
     const hitBottomWall = snake[0].y + 10 > gameCanvas.height;
 
-    return hitLeftWall || hitRightWall || hitTopWall || hitBottomWall
+    return hitLeftWall || hitRightWall || hitTopWall || hitBottomWall;
 }
 
 // Change direction of snake movement
 function changeDirection(direction) {
 
     // check if we have already changed direction this game tick
-    if (!snakeChangingDirection) {
+    if ( !snakeChangingDirection ) {
         // Set so that we dont change direction twice during update 
         snakeChangingDirection = true;
 
