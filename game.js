@@ -344,7 +344,7 @@ function renderTitle(deltaTime) {
     render8bitText( "CCV", 'white', GAMEBOARD_WIDTH / 2, frontendImages['frontend/header'].height + 80, '55px' );
     render8bitText( "SNAKE", 'white', GAMEBOARD_WIDTH / 2, frontendImages['frontend/header'].height + 150, '55px' );
 
-    renderMenuDebugInfo( );
+    //renderMenuDebugInfo( );
 }
 // ------------
 /* END STATE TITLE */
@@ -392,10 +392,13 @@ function renderCountdown(deltaTime) {
     // now clamp to no less than 1, so that we don't show "0" for a tic
     roundedTimer = Math.max( 1, roundedTimer );
 
+    // draw the themed header
+    menuCTX.drawImage( frontendImages['frontend/header'], 0, 0, frontendImages['frontend/header'].width, frontendImages['frontend/header'].height );
+
     // render countdown
     render8bitText( roundedTimer, 'white', GAMEBOARD_WIDTH / 2, ( GAMEBOARD_HEIGHT / 2 ) + 70, '65px' );
     
-    renderMenuDebugInfo( );
+    //renderMenuDebugInfo( );
 }
 // ------------
 /* END STATE COUNTDOWN */
@@ -479,16 +482,15 @@ function tickWinddown(deltaTime) {
 
 function updateWinddown(deltaTime) {
 
-    // example seperation of game logic and rendering.
-
-    // we will update values here in Update(), but render the value in Render().
-    
-    // first, demonstrate that by adding up deltaTime we can create timers.
-    // exampleTimer started at 0 and is climbing by .33 seconds each tick
+    // ensure game canvas and hud are displayed and menu canvas is hid
+    $('#hudCanvas').css('display','block');
+    $('#gameCanvas').css('display','block');
+    $('#menuCanvas').css('display','none');
+        
     winddownTimer += deltaTime;
 
-    // when it gets to or past 5 seconds, change states
-    if( winddownTimer >= 4.00 ) {
+    // when it gets to or past 3 seconds, change states
+    if( winddownTimer >= 3.00 ) {
         gameState = STATE_GAMEOVER;
 
         // create transparent button to capture clicks
@@ -501,20 +503,26 @@ function updateWinddown(deltaTime) {
         playAgainButton.y = ( menuCanvas.height / 2 ) + 100;
 
         // reset the timer so that the next time this state is run, the timer is 0 again.
-        winddownTimer -= 4.00;
+        winddownTimer -= 3.00;
     }
 }
 
 function renderWinddown(deltaTime) {
 
-    // ensure menu canvas is displayed and hud and game canvas are hidden
-    $('#menuCanvas').css('display','block');
-    $('#hudCanvas').css('display','none');
-    $('#gameCanvas').css('display','none');
+    clearCanvas( hudCTX, hudCanvas );
+    clearCanvas( gameCTX, gameCanvas );
 
-    clearCanvas( menuCTX, menuCanvas );
-    
-    renderMenuDebugInfo(  );
+    // render the game board - todo: let this change as the level progresses
+    let keys = Object.keys(playfieldImages);
+    gameCTX.drawImage( playfieldImages[ keys[ 1 ] ], 0, 0 );
+
+    // draw the snake's last position
+    drawSnake();
+
+    // food should not draw
+
+    // render the HUD in grey so we know we're in winddown
+    drawHUD( "grey" ); 
 }
 // ------------
 /* END STATE WINDDOWN */
@@ -529,6 +537,11 @@ function tickGameover(deltaTime) {
 }
 
 function updateGameover(deltaTime) {
+
+    // ensure game canvas and hud are displayed and menu canvas is hid
+    $('#hudCanvas').css('display','none');
+    $('#gameCanvas').css('display','none');
+    $('#menuCanvas').css('display','block');
 
     // wait for one of the two buttons to be clicked
     if( submitHSButton.wasClicked( mouseClickEvt ) ) {
@@ -553,7 +566,7 @@ function renderGameover(deltaTime) {
 
     clearCanvas( menuCTX, menuCanvas );
 
-    render8bitText( "Your Score", 'white', GAMEBOARD_WIDTH / 2, (menuCanvas.height / 2) - 125, '24px' );
+    render8bitText( "YOUR SCORE", 'white', GAMEBOARD_WIDTH / 2, (menuCanvas.height / 2) - 125, '24px' );
     render8bitText( playerScore, 'white', GAMEBOARD_WIDTH / 2, (menuCanvas.height / 2) - 75, '24px' );
     
     submitHSButton.render( );
@@ -564,7 +577,7 @@ function renderGameover(deltaTime) {
     menuCTX.drawImage( buttonImages['button-play-again'], ( menuCanvas.width - ( buttonImages['button-play-again'].width / 2.25 ) ) / 2, ( menuCanvas.height / 2) + 100, buttonImages['button-play-again'].width / 2.25, buttonImages['button-play-again'].height / 2.25 );
 
 
-    renderMenuDebugInfo( );
+    //renderMenuDebugInfo( );
 }
 // ------------
 /* END STATE GAMEOVER */
@@ -621,7 +634,7 @@ function updateSubmitScore(deltaTime) {
 
 function renderSubmitScore( deltaTime ) {
     
-    renderMenuDebugInfo( );
+    //renderMenuDebugInfo( );
 }
 // ------------
 /* END STATE SUBMIT SCORE */
@@ -830,7 +843,7 @@ function levelUp( ) {
     gameRound++;
 
     // increase snake speed
-    snakeUpdateFrequencyScaler -= .1;
+    snakeUpdateFrequencyScaler -= .025;
 }
 
 
@@ -862,10 +875,10 @@ function createFood() {
     });
 }
 
-function drawHUD() {
+function drawHUD( fillColor = "gold" ) {
 
     // draw hud bg-color
-    hudCTX.fillStyle = "gold";
+    hudCTX.fillStyle = fillColor;
     hudCTX.fillRect( 0, 0, hudCanvas.width, hudCanvas.height );
 
 
