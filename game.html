@@ -5,6 +5,7 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no">
         
         <link href="https://fonts.googleapis.com/css?family=Press+Start+2P" rel="stylesheet">
+        <link href="game.css" rel="stylesheet">
 
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
         <script type="text/javascript" src="game.js"></script>
@@ -57,21 +58,12 @@
         </div>
 
         <div id="leaderboard">
-            <div id="done-button">
-                <button onclick="onLeaderboardViewingDone()">DONE</button>
-            </div>
-
-            <div class="leaderboard-row">
-                <div class="name-box">
-                    <p>Name</p>
-                </div>
-    
-                <div class="hiscore-box">
-                    <p>Hi-Scores</p>
-                </div>
-    
-                <div class="campus-box">
-                    <p>Campus</p>
+            <img class="leaderboard-button" onclick="onLeaderboardViewingDone()" src="./assets/images/button-done.png" />
+            <div id="leaderboard-scores" class="leaderboard-scores">
+                <div class="leaderboard-header">
+                    <p>NAME</p>
+                    <p>HI-SCORES</p>
+                    <p>CAMPUS</p>
                 </div>
             </div>
             <div id="leaderboard-spinner"></div>
@@ -83,7 +75,7 @@
     /*Leaderboard Populating*/
     function parseScores( ) {
         
-        var leaderList = $("#leaderboard");
+        var leaderList = $("#leaderboard-scores");
 
         // hide the loader
         $("#leaderboard-spinner").css("display", "none");
@@ -116,161 +108,3 @@
         }
     }
 </script>
-
-<style>
-     html, body
-     {
-        width: 100%;
-        height: 100%;
-        margin: 0px;
-        padding: 0px;
-        overflow: hidden;
-    }
-
-    /* Starting background */
-    body {
-        background-image: url('./assets/backgrounds/background-snake.jpg');
-    }
-
-    /* Leaderboard Styling */
-    #leaderboard {
-        background-color: black;
-        visibility: hidden;
-        width: 100%;
-        height: 100%;
-
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-    }
-
-    #leaderboard-spinner {
-        margin-top: 25px;
-
-        min-width: 50px;
-        min-height: 50px;
-                
-        display: hidden;
-        background-color: white;
-
-        animation-name: leaderboard-spinner-anim;
-        animation-duration: 2s;
-        animation-iteration-count: infinite;
-    }
-
-    @keyframes leaderboard-spinner-anim {
-        from {
-            transform: rotate(0deg);
-        }
-        to {
-            transform: rotate(360deg);
-        }
-    }
-
-    #leaderboard-spinner:hover {
-        -webkit-transform: rotate(180deg);
-        transform: rotate(180deg);
-    }
-
-    #done-button {
-        margin-bottom: 25px;
-    }
-
-    #leaderboard p {
-        font-family: 'Press Start 2P';
-        text-transform: uppercase;
-        color: white;
-        font-size: 10px;
-        text-align: center;
-    }
-
-    #leaderboard .leaderboard-row {
-        display: flex;
-        border: 1px dashed lightgrey;
-        justify-content: space-between;
-        width: 90%;
-    }
-
-    #leaderboard .name-box {
-        display: flex;
-        margin-left: 5px;
-        flex-grow: 1;
-        min-width: 25%;
-        max-width: 25%;
-    }
-
-    #leaderboard .hiscore-box {
-        border-left: 1px dashed lightgrey;
-        flex-grow: 1;
-        justify-content: center;
-        min-width: 35%;
-        max-width: 35%;
-        display: flex;
-    }
-
-    #leaderboard .campus-box {
-        border-left: 1px dashed lightgrey;
-        flex-grow: 1;
-        justify-content: flex-end;
-        min-width: 35%;
-        max-width: 35%;
-        display: flex;
-        margin-right: 5px;
-    }
-    /*End Leaderboard Styling*/
-
-    #hiscoreSubmit{
-        visibility: hidden;
-        background-color: darkblue;
-        width: 100%;
-        height: 100%;
-        position: absolute;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-    }
-
-    #hiscoreSubmit p {
-        font-family: 'Press Start 2P';
-        color: white;
-        text-transform: uppercase;
-    }
-
-    select {
-        font-family: 'Press Start 2P';
-        color: white;
-        text-transform: uppercase;
-        border-radius: 0;
-        background-color: black;
-        border-color: black;
-        height: 40px;
-    }
-
-    #select-campus {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
-
-    #input-buttons {
-        margin-top: 25px;
-        width: 75%;
-        display: flex;
-        justify-content: space-around;
-    }
-
-    button {
-        background-color: grey;
-        color: white;
-        font-family: 'Press Start 2P';
-        text-transform: uppercase;
-    }
-
-    /* Game Play styling */
-
-    /* End Game Play styling */
-
-
-</style>
