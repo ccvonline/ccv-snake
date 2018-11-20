@@ -16,49 +16,58 @@
     </head>
 
     <body style="background-color: darkslategrey;">
-        <div style="position: absolute;" id="canvasWrapper">
+        <div id="canvasWrapper">
             <canvas id="menuCanvas" style="display: none;"></canvas>
             <canvas id="hudCanvas" style="display: none;"></canvas>
             <canvas id="gameCanvas" style="display: none;"></canvas>
         </div>
 
         <div id="hiscoreSubmit">
-            <div>
-                <p>Submit Your Hi-Score!</p>
-                <p>Score: <span id="playerScore"></span> Points</p>
-                <p>Enter Your Initials</p>
-            </div>
-            <div id="input-fields">
-                <input id="initialOne" type="text" maxlength="1" required/>
-                <input id="initialTwo" type="text" maxlength="1" required/>
-                <input id="initialThree" type="text" maxlength="1" required/>
+            <div id="header">
+                <img src="./assets/images/frontend/header.png"/>
             </div>
 
-            <div id="select-campus">
-                <div>
-                    <p>Pick Your Campus</p>
+            <div id="content">
+                <div id="score-info">
+                    <p>Submit Your Hi-Score!</p>
+                    <p>Score: <span id="playerScore"></span></p>
                 </div>
-                <select id="playerCampus">
-                    <option value="Anthem">Anthem</option>
-                    <option value="Avondale">Avondale</option>
-                    <option value="Chandler">Chandler</option>
-                    <option value="East Valley">East Valley</option>
-                    <option value="Midtown Phoenix">Midtown Phoenix</option>
-                    <option value="North Phoenix">North Phoenix</option>
-                    <option value="Peoria">Peoria</option>
-                    <option value="Scottsdale">Scottsdale</option>
-                    <option value="Surprise">Surprise</option>
-                </select>
-            </div>
 
-            <div id="input-buttons">
-                <button onclick="onSubmitHiscore()">Submit</button>
-                <button onclick="onCancelHiscore()">Cancel</button>
+                <div id="input-fields">
+                    <p>Enter Your Initials</p>
+                    <input id="initialsInput" type="text" maxlength="3" required/>
+                </div>
+
+                <div id="select-campus">
+                    <div>
+                        <p>Pick Your Campus</p>
+                    </div>
+                    <select id="playerCampus" class="minimal">
+                        <option selected value="Anthem">Anthem</option>
+                        <option value="Avondale">Avondale</option>
+                        <option value="Chandler">Chandler</option>
+                        <option value="East Valley">East Valley</option>
+                        <option value="Midtown Phoenix">Midtown Phoenix</option>
+                        <option value="North Phoenix">North Phoenix</option>
+                        <option value="Peoria">Peoria</option>
+                        <option value="Scottsdale">Scottsdale</option>
+                        <option value="Surprise">Surprise</option>
+                    </select>
+                </div>
+
+                <div id="input-buttons">
+                    <a onclick="onCancelHiscore()">
+                        <img src="./assets/images/frontend/btn-cancel.png"/>
+                    </a>
+                    <a onclick="onSubmitHiscore()">
+                        <img src="./assets/images/frontend/btn-submit.png"/>
+                    </a>
+                </div>
             </div>
         </div>
 
         <div id="leaderboard">
-            <img class="leaderboard-button" onclick="onLeaderboardViewingDone()" src="./assets/images/button-done.png" />
+            <img class="leaderboard-button" onclick="onLeaderboardViewingDone()" src="./assets/images/frontend/btn-done.png" />
             <div id="leaderboard-scores" class="leaderboard-scores">
                 <div class="leaderboard-header">
                     <p>NAME</p>

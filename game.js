@@ -62,7 +62,7 @@ let playfieldImages = {};
 let frontendImages = {};
 
 let numLoadedImages = 0;
-let totalImages = 35;
+let totalImages = 34;
 
 // Game Play
 let gameVariablesSet = false;
@@ -289,6 +289,7 @@ function updateSetup(deltaTime) {
     
     // and now goto the title screen
     gameState = STATE_TITLE;
+    displayUI( "#canvasWrapper", true );
 }
 
 function renderSetup(deltaTime) {
@@ -322,11 +323,11 @@ function updateTitle(deltaTime) {
         // or let them view the leaderboard
         gameState = STATE_LEADERBOARD;
 
-        $("#leaderboard").css("visibility", "visible");
+        displayUI( "#leaderboard", true );
+        displayUI( "#canvasWrapper", false );
+        
         $("#leaderboard-spinner").css("display", "inline-block");
 
-        $("#canvasWrapper").css("visibility", "hidden");
-        
         getScores( parseScores );
     }
 }
@@ -547,8 +548,9 @@ function updateGameover(deltaTime) {
     if( submitHSButton.wasClicked( mouseClickEvt ) ) {
         
         // goto the submit score screen
-        $("#hiscoreSubmit").css("visibility", "visible");
-        $("#canvasWrapper").css("visibility", "hidden");
+        displayUI( "#hiscoreSubmit", true );
+        displayUI( "#canvasWrapper", false );
+        
         $("#playerScore").text(playerScore);
         
         gameState = STATE_SUBMITSCORE;
@@ -595,21 +597,19 @@ function updateSubmitScore(deltaTime) {
     
     // wait for the submit or cancel button to be clicked
     if( submitHSClicked ) {
-        let firstInitial = $('#initialOne').val();
-        let secondInitial = $('#initialTwo').val();
-        let thirdInitial = $('#initialThree').val();
-
-        let playerInitials = firstInitial + secondInitial + thirdInitial;
+        let playerInitials = $('#initialsInput').val();
+        playerInitials = playerInitials.toUpperCase();
 
         // if they entered a name
-        if ( playerInitials.length > 0 ) {
+        if ( playerInitials.length > 1 ) {
             
             // grab their campus
             let playerCampus = $("#playerCampus").val( );
+            playerCampus = playerCampus.toUpperCase();
 
             // hide the submit screen
-            $("#hiscoreSubmit").css("visibility", "hidden");
-            $("#canvasWrapper").css("visibility", "visible");
+            displayUI( "#hiscoreSubmit", false );
+            displayUI( "#canvasWrapper", true );
 
             // post it with their score
             postScore( playerInitials, playerScore, playerCampus, function() {} );
@@ -623,8 +623,9 @@ function updateSubmitScore(deltaTime) {
     }
     else if ( cancelHSClicked ) {
 
-        $("#hiscoreSubmit").css("visibility", "hidden");
-        $("#canvasWrapper").css("visibility", "visible");
+        displayUI( "#hiscoreSubmit", false );
+        displayUI( "#canvasWrapper", true );
+
         // clear game variables
         clearGameVariables();
 
@@ -656,8 +657,8 @@ function updateLeaderboard(deltaTime) {
 
         gameState = STATE_TITLE;
 
-        $("#leaderboard").css("visibility", "hidden");
-        $("#canvasWrapper").css("visibility", "visible");
+        displayUI( "#leaderboard", false );
+        displayUI( "#canvasWrapper", true );
 
         // reset the leaderboard by removing any row with a .score class
         $(".score").remove( );
@@ -1057,7 +1058,6 @@ function loadImages() {
     loadImage( buttonImages, 'button-play-again');
     loadImage( buttonImages, 'button-submit-score');
     loadImage( buttonImages, 'button-view-high-score');
-    loadImage( buttonImages, 'button-done');
 
     // snake
     loadImage( snakeImages, 'snake-head');
@@ -1198,6 +1198,18 @@ function resetTouchMoveXY( ) {
     endTouchMoveY = null;
 
     detectingSwipe = false;
+}
+
+function displayUI( uiPanelId, visible) {
+
+    if( visible === true ) {
+        $(uiPanelId).css({visibility:"visible", opacity: 0.0}).animate({opacity: 1.0},200);
+    } 
+    else {
+        $(uiPanelId).animate({opacity: 0.0}, 200, function( ) { 
+                    $(uiPanelId).css({visibility:"hidden"}) 
+        });
+    }
 }
 
 // ------------
