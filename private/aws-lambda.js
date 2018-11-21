@@ -94,7 +94,8 @@ const handlePostRequest = (event)=>{
     }
     
     // make sure the campus is ONLY one of the following things--otherwise default to Peoria
-    let validCampuses = [ "ANTHEM", "AVONDALE", "CHANDLER", "EAST VALLEY", "MIDTOWN PHX", "NORTH PHX", "PEORIA", "SCOTTSDALE", "SURPRISE"];
+    //let validCampuses = [ "ANTHEM", "AVONDALE", "CHANDLER", "EAST VALLEY", "MIDTOWN PHX", "NORTH PHX", "PEORIA", "SCOTTSDALE", "SURPRISE"];
+    let validCampuses = [ "ATH", "AVD", "CHD", "EAV", "MID", "NPX", "PEO", "SCO", "SUR"];
     
     let foundMatch = false;
     for( let i = 0; i < validCampuses.length; i++ ) {
