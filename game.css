@@ -81,18 +81,32 @@ body {
     justify-content: space-between;
     align-items: center;
     flex-grow: 1;
+    min-height: 30px;
+    margin: 5px;
+}
+
+.leaderboard-row {
+    border-bottom: 1px solid darkred;
 }
 
 .leaderboard-header {
     color: #a7191d;
+    justify-content: center;
+}
+
+.num-box {
+    flex-grow: 1;
+    display: flex;
+    max-width: 15%;
 }
 
 .name-box {
-    width: 33%;
+    flex-grow: 1;
+    display: flex;
 }
 
 .hiscore-box {
-    width: 33%;
+    flex-grow: 1;
     text-align: center;
     /* border-left: 1px dashed lightgrey;
     flex-grow: 1;
@@ -103,7 +117,7 @@ body {
 }
 
 .campus-box {
-    width: 33%;
+    flex-grow: 1;
     text-align: right;
     /* border-left: 1px dashed lightgrey;
     flex-grow: 1;
@@ -123,7 +137,7 @@ body {
 #hiscoreSubmit {
     background-color: transparent;
     width: 360px;
-    height: 660px;
+    height: 520px;
     position: absolute;
     display: flex;
 
@@ -194,7 +208,7 @@ body {
 
 #hiscoreSubmit #input-buttons {
     margin-top: 25px;
-    width: 75%;
+    width: 100%;
     display: flex;
     justify-content: space-around;
 }

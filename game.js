@@ -8,7 +8,7 @@ const TOUCH_THRESHOLD = 45;
 const GAMEPLAY_GRID_SIZE = 20;
 
 const GAME_SCREEN_WIDTH = 360;
-const GAME_SCREEN_HEIGHT = 660;
+const GAME_SCREEN_HEIGHT = 520;
 
 const HUD_WIDTH = GAME_SCREEN_WIDTH;
 const HUD_HEIGHT = 40;
@@ -19,7 +19,7 @@ const GAMEBOARD_HEIGHT = GAME_SCREEN_HEIGHT - HUD_HEIGHT;
 // Game State Constants
 const STATE_SETUP = 'SETUP';
 const STATE_TITLE = 'TITLE';
-const STATE_COUNTDOWN = 'COUNTDOWN';
+const STATE_TUTORIAL = 'TUTORIAL';
 const STATE_PLAY = 'PLAY';
 const STATE_WINDDOWN = "WINDDOWN";
 const STATE_GAMEOVER = "GAMEOVER";
@@ -42,8 +42,13 @@ let submitHSClicked = false;
 let cancelHSClicked = false;
 let leaderboardViewingDoneClicked = false;
 
+let tutorialDoneButton = null;
 let playGameButton = null;
 let viewHSButton = null;
+
+// Sounds
+let eatSound = null;
+let deadSound = null;
 
 // Game timer
 let tickTimer = Date.now();
@@ -62,11 +67,10 @@ let playfieldImages = {};
 let frontendImages = {};
 
 let numLoadedImages = 0;
-let totalImages = 34;
+let totalImages = 35;
 
 // Game Play
 let gameVariablesSet = false;
-let countdownTimer = 3;
 let playTimer = 0;
 let playerScore = null;
 let gameRound = null;
@@ -113,7 +117,7 @@ function tick() {
     switch( gameState ) {
         case STATE_SETUP: tickSetup(deltaTime); break;
         case STATE_TITLE: tickTitle(deltaTime); break;
-        case STATE_COUNTDOWN: tickCountdown(deltaTime); break;
+        case STATE_TUTORIAL: tickTutorial(deltaTime); break;
         case STATE_PLAY: tickPlay(deltaTime); break;
         case STATE_WINDDOWN: tickWinddown(deltaTime); break;
         case STATE_GAMEOVER: tickGameover(deltaTime); break;
@@ -140,7 +144,7 @@ function updateSetup(deltaTime) {
     // center the gameboard on the screen
     let canvasDiv = document.getElementById('canvasWrapper');
     canvasDiv.style.left = ((window.innerWidth - GAME_SCREEN_WIDTH) / 2) + "px";
-    canvasDiv.style.top = ((window.innerHeight - GAME_SCREEN_HEIGHT) / 2) + "px";
+    canvasDiv.style.top = ((window.innerHeight - GAME_SCREEN_HEIGHT) / 2)  + "px";
 
     // create/setup menu canvas
     menuCanvas = document.getElementById('menuCanvas');
@@ -176,6 +180,10 @@ function updateSetup(deltaTime) {
     gameCanvas.width = GAMEBOARD_WIDTH;
     gameCanvas.height = GAMEBOARD_HEIGHT;
     gameCTX = gameCanvas.getContext('2d');
+
+    // load sound effects
+    eatSound = new sound( "assets/audio/eat.wav" );
+    deadSound = new sound( "assets/audio/dead.wav" );
 
     // event listeners for touch gameplay      
     gameCanvas.addEventListener('touchstart', function(event) {
@@ -280,12 +288,7 @@ function updateSetup(deltaTime) {
     // create transparent buttons (rendered under the button images so we can capture the click)
     // use button image dimensions to set width, height, and location
     playGameButton = new TransparentButton( menuCTX, ( buttonImages['button-play-game'].width / 2.5 ), (buttonImages['button-play-game'].height / 2.5 ) );
-    playGameButton.x = ( menuCanvas.width - ( buttonImages['button-play-game'].width / 2.5 ) ) / 2;
-    playGameButton.y = ( menuCanvas.height / 2 );
-
     viewHSButton = new TransparentButton( menuCTX, ( buttonImages['button-view-high-score'].width / 2.5 ), (buttonImages['button-view-high-score'].height / 2.5 ) );
-    viewHSButton.x = ( menuCanvas.width - ( buttonImages['button-view-high-score'].width / 2.5 ) ) / 2;
-    viewHSButton.y = ( menuCanvas.height / 2 ) + 100;
     
     // and now goto the title screen
     gameState = STATE_TITLE;
@@ -316,7 +319,9 @@ function updateTitle(deltaTime) {
 
     // wait for the play game button to be clicked
     if( playGameButton.wasClicked( mouseClickEvt ) ) {
-        gameState = STATE_COUNTDOWN;
+        gameState = STATE_TUTORIAL;
+
+        tutorialDoneButton = new TransparentButton( menuCTX, ( buttonImages['button-play-game'].width / 2.5 ), (buttonImages['button-play-game'].height / 2.5 ) );
     }
     else if ( viewHSButton.wasClicked( mouseClickEvt ) ) {
 
@@ -335,15 +340,22 @@ function updateTitle(deltaTime) {
 function renderTitle(deltaTime) {
     clearCanvas( menuCTX, menuCanvas );
 
+    let playButtonYOffset = 50;
+    playGameButton.x = ( menuCanvas.width - ( buttonImages['button-play-game'].width / 2.5 ) ) / 2;
+    playGameButton.y = ( menuCanvas.height / 2 ) + playButtonYOffset;
     playGameButton.render( );
-    viewHSButton.render( );
+    menuCTX.drawImage( buttonImages['button-play-game'], ( menuCanvas.width - ( buttonImages['button-play-game'].width / 2.5 ) ) / 2, ( menuCanvas.height / 2) + playButtonYOffset, buttonImages['button-play-game'].width / 2.5, buttonImages['button-play-game'].height / 2.5 );
 
-    menuCTX.drawImage( frontendImages['frontend/header'], 0, 0, frontendImages['frontend/header'].width, frontendImages['frontend/header'].height );
-    menuCTX.drawImage( buttonImages['button-play-game'], ( menuCanvas.width - ( buttonImages['button-play-game'].width / 2.5 ) ) / 2, ( menuCanvas.height / 2), buttonImages['button-play-game'].width / 2.5, buttonImages['button-play-game'].height / 2.5 );
-    menuCTX.drawImage( buttonImages['button-view-high-score'], ( menuCanvas.width - ( buttonImages['button-view-high-score'].width / 2.5 ) ) / 2, ( menuCanvas.height / 2 ) + 100, buttonImages['button-view-high-score'].width / 2.5, buttonImages['button-view-high-score'].height / 2.5 );
+    let hsButtonYOffset = 120;
+    viewHSButton.x = ( menuCanvas.width - ( buttonImages['button-view-high-score'].width / 2.5 ) ) / 2;
+    viewHSButton.y = ( menuCanvas.height / 2 ) + hsButtonYOffset;
+    viewHSButton.render( );
+    menuCTX.drawImage( buttonImages['button-view-high-score'], ( menuCanvas.width - ( buttonImages['button-view-high-score'].width / 2.5 ) ) / 2, ( menuCanvas.height / 2 ) + hsButtonYOffset, buttonImages['button-view-high-score'].width / 2.5, buttonImages['button-view-high-score'].height / 2.5 );
 
     render8bitText( "CCV", 'white', GAMEBOARD_WIDTH / 2, frontendImages['frontend/header'].height + 80, '55px' );
     render8bitText( "SNAKE", 'white', GAMEBOARD_WIDTH / 2, frontendImages['frontend/header'].height + 150, '55px' );
+
+    menuCTX.drawImage( frontendImages['frontend/header'], 0, 0, frontendImages['frontend/header'].width, frontendImages['frontend/header'].height );
 
     //renderMenuDebugInfo( );
 }
@@ -351,16 +363,16 @@ function renderTitle(deltaTime) {
 /* END STATE TITLE */
 
 
-/* STATE: COUNTDOWN */
+/* STATE: TUTORIAL */
 // ------------
 
-function tickCountdown(deltaTime) {
+function tickTutorial(deltaTime) {
 
-    updateCountdown(deltaTime);
-    renderCountdown(deltaTime);
+    updateTutorial(deltaTime);
+    renderTutorial(deltaTime);
 }
 
-function updateCountdown(deltaTime) {
+function updateTutorial(deltaTime) {
 
     // set game starting values if not already set
     if ( gameVariablesSet !== true ) {
@@ -372,37 +384,31 @@ function updateCountdown(deltaTime) {
         createFood();
     }
     
-    // do the 3...2...1 thang
-    countdownTimer -= deltaTime;
-    
-    // when counter gets to 0, change to STATE_PLAY
-    if( countdownTimer <= 0 ) {
+    // wait for them to say OK!
+    if ( tutorialDoneButton.wasClicked( mouseClickEvt ) ) {
         gameState = STATE_PLAY;
-
     }
-
 }
 
-function renderCountdown(deltaTime) {
+function renderTutorial(deltaTime) {
 
     clearCanvas( menuCTX, menuCanvas );
-
-    // first round the timer UP to the next whole number
-    let roundedTimer = Math.ceil( countdownTimer );
-
-    // now clamp to no less than 1, so that we don't show "0" for a tic
-    roundedTimer = Math.max( 1, roundedTimer );
 
     // draw the themed header
     menuCTX.drawImage( frontendImages['frontend/header'], 0, 0, frontendImages['frontend/header'].width, frontendImages['frontend/header'].height );
 
-    // render countdown
-    render8bitText( roundedTimer, 'white', GAMEBOARD_WIDTH / 2, ( GAMEBOARD_HEIGHT / 2 ) + 70, '65px' );
+    menuCTX.drawImage( frontendImages['frontend/tutorial'], 0, 0, frontendImages['frontend/tutorial'].width, frontendImages['frontend/tutorial'].height );
+
+    let tutorialButtonYOffset = GAMEBOARD_HEIGHT;
+    tutorialDoneButton.x = ( menuCanvas.width - ( buttonImages['button-play-game'].width / 2.5 ) ) / 2;
+    tutorialDoneButton.y = tutorialButtonYOffset;
+    tutorialDoneButton.render( );
+    menuCTX.drawImage( buttonImages['button-play-game'], ( menuCanvas.width - ( buttonImages['button-play-game'].width / 2.5 ) ) / 2, tutorialButtonYOffset, buttonImages['button-play-game'].width / 2.5, buttonImages['button-play-game'].height / 2.5 );
     
     //renderMenuDebugInfo( );
 }
 // ------------
-/* END STATE COUNTDOWN */
+/* END STATE TUTORIAL */
 
 
 /* STATE: PLAY */
@@ -444,6 +450,8 @@ function updatePlay(deltaTime) {
 
     if ( detectCollision() ) {
         gameState = STATE_WINDDOWN;
+
+        deadSound.play();
     }   
 
     updateHUD();
@@ -768,7 +776,6 @@ function onLeaderboardViewingDone() {
 // Set default values of game variables
 function setDefaultGameVariables() {
     playerScore = 0;
-    countdownTimer = 3;
     playTimer = 0;
     gameRound = 1;
     snakeUpdateFrequencyScaler = .7;
@@ -803,7 +810,6 @@ function setDefaultGameVariables() {
 function clearGameVariables() {
     // Game Play
     gameVariablesSet = false;
-    countdownTimer = 3;
     playTimer = 0;
     playerScore = null;
     gameRound = null;
@@ -954,6 +960,8 @@ function advanceSnake() {
 
     if ( detectFoodEaten() ) {
 
+        eatSound.play();
+
         // food consumed, increase count
         foodConsumed++;
 
@@ -1102,6 +1110,7 @@ function loadImages() {
 
     // frontend images
     loadImage( frontendImages, 'frontend/header' );
+    loadImage( frontendImages, 'frontend/tutorial', '.jpg');
 }
 
 // load image into imageArray

@@ -10,12 +10,13 @@
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
         <script type="text/javascript" src="game.js"></script>
         <script type="text/javascript" src="leaderboard-api.js"></script>
-        <script type="text/javascript" src="button.js"></script>
+        <script type="text/javascript" src="util/button.js"></script>
+        <script type="text/javascript" src="util/sound.js"></script>
         <script type="text/javascript" src="util/font.js"></script>
         <script type="text/javascript" src="vendor/haptics.js"></script>
     </head>
 
-    <body style="background-color: darkslategrey;">
+    <body style="background-color: darkred;">
         <div id="canvasWrapper">
             <canvas id="menuCanvas" style="display: none;"></canvas>
             <canvas id="hudCanvas" style="display: none;"></canvas>
@@ -70,9 +71,7 @@
             <img class="leaderboard-button" onclick="onLeaderboardViewingDone()" src="./assets/images/frontend/btn-done.png" />
             <div id="leaderboard-scores" class="leaderboard-scores">
                 <div class="leaderboard-header">
-                    <p>NAME</p>
-                    <p>HI-SCORES</p>
-                    <p>CAMPUS</p>
+                    <P>SCORES</P>
                 </div>
             </div>
             <div id="leaderboard-spinner"></div>
@@ -103,8 +102,10 @@
             }
 
             leaderList.append( "<div class=\"leaderboard-row score\">" + 
+                                    "<div class=\"num-box\">" +
+                                        "<p style=\"color: " + rowColor + ";\">" + pad((i + 1), 2) + "</p>" + 
+                                    "</div>" +
                                     "<div class=\"name-box\">" +
-                                        "<p style=\"color: " + rowColor + ";\">" + (i + 1) + "." + "</p>" + 
                                         "<p style=\"color: " + rowColor + ";\">" + gLeaderboardScores[i].name + "</p>" +
                                     "</div>" + 
                                     "<div class=\"hiscore-box\">" +
@@ -116,4 +117,10 @@
                                 "</div>");
         }
     }
+
+function pad(num, size) {
+    var s = num+"";
+    while (s.length < size) s = "0" + s;
+    return s;
+}
 </script>
