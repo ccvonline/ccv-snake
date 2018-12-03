@@ -46,10 +46,6 @@ let tutorialDoneButton = null;
 let playGameButton = null;
 let viewHSButton = null;
 
-// Sounds
-let eatSound = null;
-let deadSound = null;
-
 // Game timer
 let tickTimer = Date.now();
 
@@ -80,6 +76,7 @@ let startTouchMoveX = null;
 let startTouchMoveY = null;
 let endTouchMoveX = null;
 let endTouchMoveY = null;
+let snakeRenderPos = null;
 let snake = null;
 let snakeMovementDirection = null;
 let snakeChangingDirection = null;
@@ -160,6 +157,7 @@ function updateSetup(deltaTime) {
     }, false);
 
     menuCanvas.addEventListener('click', function(evt) {
+
         mouseClickEvt.clicked = true;
 
         let mousePos = getMousePos(menuCanvas, evt);
@@ -180,10 +178,6 @@ function updateSetup(deltaTime) {
     gameCanvas.width = GAMEBOARD_WIDTH;
     gameCanvas.height = GAMEBOARD_HEIGHT;
     gameCTX = gameCanvas.getContext('2d');
-
-    // load sound effects
-    eatSound = new sound( "assets/audio/eat.wav" );
-    deadSound = new sound( "assets/audio/dead.wav" );
 
     // event listeners for touch gameplay      
     gameCanvas.addEventListener('touchstart', function(event) {
@@ -448,16 +442,15 @@ function updatePlay(deltaTime) {
         playTimer -= ( SNAKE_UPDATE_FREQUENCY_SEC * snakeUpdateFrequencyScaler );
     }
 
+    // only update the snake's RENDER position if he didn't die due to collision
     if ( detectCollision() ) {
         gameState = STATE_WINDDOWN;
-
-        deadSound.play();
-    }   
+    } 
+    else {
+        snakeRenderPos = snake.slice();
+    }
 
     updateHUD();
-
-    // TODO: 
-    // CHECK FOR DEATH - same as collision?
 }
 
 function renderPlay(deltaTime) {
@@ -791,6 +784,7 @@ function setDefaultGameVariables() {
         {x: 80, y: 140},
         {x: 60, y: 140},
     ];
+    snakeRenderPos = snake.slice();
     snakeMovementDirection = 'right';
     snakeChangingDirection = false;
     snakeDirectionX =  GAMEPLAY_GRID_SIZE;
@@ -901,13 +895,13 @@ function drawHUD( fillColor = "gold" ) {
 // Draw snake
 function drawSnake() {
 
-    for (i = 0; i < snake.length; i++) {
+    for (i = 0; i < snakeRenderPos.length; i++) {
         if ( i === 0 ) {
-            drawSnakeHead( snake[i] );
+            drawSnakeHead( snakeRenderPos[i] );
         } else if ( i % 2 == 0) {
-            drawSnakeBodyPart( snake[i], false );
+            drawSnakeBodyPart( snakeRenderPos[i], false );
         } else {
-            drawSnakeBodyPart( snake[i], true );
+            drawSnakeBodyPart( snakeRenderPos[i], true );
         }
     }
 //    snake.forEach(drawSnakePart);
@@ -959,8 +953,6 @@ function advanceSnake() {
     snake.unshift( head );
 
     if ( detectFoodEaten() ) {
-
-        eatSound.play();
 
         // food consumed, increase count
         foodConsumed++;
