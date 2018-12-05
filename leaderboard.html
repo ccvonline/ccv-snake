@@ -80,7 +80,24 @@
 <script>    
     $( document ).ready(function() {
         getScores( parseScores );
+
+        setInterval( function() { refreshScores(); }, 10000 );
     });
+
+    function refreshScores() {
+        getScores( parseRefreshedScores );
+    }
+
+    function parseRefreshedScores( ) {
+        var leaderList = $("#leaderboard");
+        
+        toggleUI("#leaderboard", false, function( ) {
+            $("#leaderboard .score").remove( );
+            parseScores();
+
+            toggleUI("#leaderboard", true, function( ) { } );
+         });
+    }
 
     function parseScores( ) {
         
@@ -100,7 +117,7 @@
             }
 
 
-            leaderList.append( "<div class=\"leaderboard-row\">" + 
+            leaderList.append( "<div class=\"score leaderboard-row\">" + 
                                     "<div class=\"name-box\">" +
                                         "<p style=\"color: " + rowColor + ";\">" + (i + 1) + "." + "</p>" + 
                                         "<p style=\"color: " + rowColor + ";\">" + gLeaderboardScores[i].name + "</p>" +
@@ -109,12 +126,42 @@
                                     "<p style=\"color: " + rowColor + ";\">" + gLeaderboardScores[i].score + "</p>" + 
                                     "</div>" +
                                     "<div class=\"campus-box\">" +
-                                    "<p style=\"color: " + rowColor + ";\">" + gLeaderboardScores[i].campus + "</p>" + 
+                                    "<p style=\"color: " + rowColor + ";\">" + getCampusName( gLeaderboardScores[i].campus ) + "</p>" + 
                                     "</div>" +
                                 "</div>");
         }
     }
 
-    function onPostComplete() {
+    function getCampusName(campusAbbreviation) {
+        switch( campusAbbreviation ) {
+            case "ATH": return "ANTHEM";
+            case "AVD": return "AVONDALE";
+            case "CHD": return "CHANDLER";
+            case "EAV": return "EAST VALLEY";
+            case "MID": return "MIDTOWN PHOENIX";
+            case "NPX": return "NORTH PHOENIX";
+            case "PEO": return "PEORIA";
+            case "SCO": return "SCOTTSDALE";
+            case "SUR": return "SURPRISE";
+        }
+    }
+
+    function toggleUI( uiPanelId, visible, onAnimationComplete) {
+        if( visible === true ) 
+        {
+            $(uiPanelId).css({visibility:"visible", opacity: 0.0})
+                .animate({opacity: 1.0}, 200, function( ) 
+                    { 
+                        onAnimationComplete() 
+                    });
+        } 
+        else 
+        {
+            $(uiPanelId).animate({opacity: 0.0}, 200, function( ) 
+                { 
+                    $(uiPanelId).css({visibility:"hidden"}) 
+                    onAnimationComplete();
+                });
+        }
     }
 </script>

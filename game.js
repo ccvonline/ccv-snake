@@ -61,9 +61,10 @@ let giftImages = {};
 let currencyImages = {};
 let playfieldImages = {};
 let frontendImages = {};
+let snakeDeadImages = {};
 
 let numLoadedImages = 0;
-let totalImages = 35;
+let totalImages = 36;
 
 // Game Play
 let gameVariablesSet = false;
@@ -445,6 +446,10 @@ function updatePlay(deltaTime) {
     // only update the snake's RENDER position if he didn't die due to collision
     if ( detectCollision() ) {
         gameState = STATE_WINDDOWN;
+        
+        snakeDeathAnimRate = .5 / snakeRenderPos.length;
+        snakeDeathAnimLength = snakeRenderPos.length;
+        snakeDeathAnimTimer = snakeDeathAnimRate + 1.0; //add some extra time in the beginning so the user can see what happened
     } 
     else {
         snakeRenderPos = snake.slice();
@@ -462,7 +467,7 @@ function renderPlay(deltaTime) {
     let keys = Object.keys(playfieldImages);
     gameCTX.drawImage( playfieldImages[ keys[ 1 ] ], 0, 0 );
 
-    drawSnake();
+    drawSnake(snakeImages['snake-head'], snakeRenderPos.length);
     drawFood();
     drawHUD();
     
@@ -474,7 +479,9 @@ function renderPlay(deltaTime) {
 
 /* STATE: WINDDOWN */
 // ------------
-let winddownTimer = 0;
+let snakeDeathAnimLength = 0;
+let snakeDeathAnimTimer = 0;
+let snakeDeathAnimRate = 0;
 
 function tickWinddown(deltaTime) {
 
@@ -488,11 +495,9 @@ function updateWinddown(deltaTime) {
     $('#hudCanvas').css('display','block');
     $('#gameCanvas').css('display','block');
     $('#menuCanvas').css('display','none');
-        
-    winddownTimer += deltaTime;
-
-    // when it gets to or past 3 seconds, change states
-    if( winddownTimer >= 3.00 ) {
+    
+    // when the snake death is over, move on
+    if( snakeDeathAnimLength < -1 ) {
         gameState = STATE_GAMEOVER;
 
         // create transparent button to capture clicks
@@ -503,9 +508,14 @@ function updateWinddown(deltaTime) {
         playAgainButton = new TransparentButton( menuCTX, ( buttonImages['button-play-again'].width / 2.25 ), (buttonImages['button-play-again'].height / 2.25 ) );
         playAgainButton.x = ( menuCanvas.width - ( buttonImages['button-play-again'].width / 2.25 ) ) / 2;
         playAgainButton.y = ( menuCanvas.height / 2 ) + 100;
+    }
 
-        // reset the timer so that the next time this state is run, the timer is 0 again.
-        winddownTimer -= 3.00;
+    // animate the snake dying, and then we'll end when we're done
+    snakeDeathAnimTimer -= deltaTime;
+    if( snakeDeathAnimTimer <= 0.0 ) {
+        snakeDeathAnimLength--;
+
+        snakeDeathAnimTimer += snakeDeathAnimRate;
     }
 }
 
@@ -518,8 +528,16 @@ function renderWinddown(deltaTime) {
     let keys = Object.keys(playfieldImages);
     gameCTX.drawImage( playfieldImages[ keys[ 1 ] ], 0, 0 );
 
-    // draw the snake's last position
-    drawSnake();
+    // draw the snake's last position as we decay it
+    if( snakeDeathAnimLength >= 0 ) {
+        drawSnake(snakeDeadImages['snake-dead-0'], Math.max(0, snakeDeathAnimLength));
+    }
+    // else {
+    //     gameCTX.drawImage(snakeDeadImages['snake-dead-0'], snakeRenderPos[0].x, 
+    //                                                        snakeRenderPos[0].y, 
+    //                                                        GAMEPLAY_GRID_SIZE, 
+    //                                                        GAMEPLAY_GRID_SIZE);
+    // }
 
     // food should not draw
 
@@ -887,17 +905,17 @@ function drawHUD( fillColor = "gold" ) {
     hudCTX.fillStyle = "white";
     hudCTX.font = `20px "${EIGHT_BIT_FONT_NAME}"`;
     hudCTX.textAlign = "left";
-    hudCTX.fillText( "Round:" + hudRound, 10, 27) ;
+    hudCTX.fillText( "ROUND:" + hudRound, 10, 27) ;
     hudCTX.textAlign = "right";
     hudCTX.fillText( hudScore, hudCanvas.width - 10, 27);
 }
 
 // Draw snake
-function drawSnake() {
+function drawSnake( snakeHeadImage, numParts ) {
 
-    for (i = 0; i < snakeRenderPos.length; i++) {
+    for (i = 0; i < numParts; i++) {
         if ( i === 0 ) {
-            drawSnakeHead( snakeRenderPos[i] );
+            drawSnakeHead( snakeHeadImage, snakeRenderPos[i] );
         } else if ( i % 2 == 0) {
             drawSnakeBodyPart( snakeRenderPos[i], false );
         } else {
@@ -908,9 +926,9 @@ function drawSnake() {
 }
 
 // Draw snake head
-function drawSnakeHead(snakePart) {
+function drawSnakeHead(snakeHeadImage, snakePart) {
 
-    gameCTX.drawImage(snakeImages['snake-head'], snakePart.x, snakePart.y, GAMEPLAY_GRID_SIZE, GAMEPLAY_GRID_SIZE);
+    gameCTX.drawImage(snakeHeadImage, snakePart.x, snakePart.y, GAMEPLAY_GRID_SIZE, GAMEPLAY_GRID_SIZE);
 
 }
 
@@ -1103,6 +1121,8 @@ function loadImages() {
     // frontend images
     loadImage( frontendImages, 'frontend/header' );
     loadImage( frontendImages, 'frontend/tutorial', '.jpg');
+
+    loadImage( snakeDeadImages, 'snake-dead-0' );
 }
 
 // load image into imageArray
