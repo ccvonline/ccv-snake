@@ -91,10 +91,10 @@ let foodConsumed = null;
 let hudRound = null;
 let hudScore = null;
 
-
 // Core Methods
 // ------------
 $( document ).ready(function() {
+
     // load images into arrays for use on the canvas
     loadImages();
 
@@ -571,6 +571,7 @@ function updateGameover(deltaTime) {
         displayUI( "#canvasWrapper", false );
         
         $("#playerScore").text(playerScore);
+        $('#initialsInput').val('');
         
         gameState = STATE_SUBMITSCORE;
     }
@@ -630,8 +631,10 @@ function updateSubmitScore(deltaTime) {
             displayUI( "#hiscoreSubmit", false );
             displayUI( "#canvasWrapper", true );
 
-            // post it with their score
-            postScore( playerInitials, playerScore, playerCampus, function() {} );
+            // post it with their score (if their score is more than 0)
+            if( playerScore > 0 ) {
+                postScore( playerInitials, playerScore, playerCampus, function() {} );
+            }
 
             // clear game variables
             clearGameVariables();

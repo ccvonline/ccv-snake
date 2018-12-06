@@ -76,21 +76,35 @@ const handlePostRequest = (event)=>{
     if ( !content.hasOwnProperty('group') ) {
         content.group = 'AllCampuses';
     }
-    
+
+    // filter the submitted initials to be Christmas friendly
+    let invalidName = false;
+
+    // first limit to 3 characters
+    let sanitizedContentName = content.name.substring( 0, 3 );
+
+    // now force uppercase 
+    sanitizedContentName = sanitizedContentName.toUpperCase();
+
+    // now strip anything non alphabetic
+    sanitizedContentName = sanitizedContentName.replace(/[^A-Z]/g, '');
+
     // scrub any dirty words from their name
-    let dirtyNames = [ "FUC", "FUK", "SHT", "ASS" ];
-
-    // if it's a full 3 letters
-    if( content.name.length > 2 ) {
+    let dirtyNames = [ "FU", "CCV", "FUC", "FUK", "SHT", "ASS", "TIT"];
         
-        // and it matches one of our dirty names
-        for( let i = 0; i < dirtyNames.length; i++ ) {
+    // if the player's name matches anything in our blacklist
+    for( let i = 0; i < dirtyNames.length; i++ ) {
 
-            // drop the middle initial
-            if( content.name === dirtyNames[i] ) {
-                content.name = content.name[0] + ' ' + content.name[2];
-            }
+        // flag it as invalid
+        if( sanitizedContentName === dirtyNames[i] ) {
+            invalidName = true;
+            break;
         }
+    }
+
+    // and replace it with AAA
+    if( invalidName === true ) {
+        content.name = "AAA";
     }
     
     // make sure the campus is ONLY one of the following things--otherwise default to Peoria
