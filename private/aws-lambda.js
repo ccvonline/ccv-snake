@@ -90,7 +90,7 @@ const handlePostRequest = (event)=>{
     sanitizedContentName = sanitizedContentName.replace(/[^A-Z]/g, '');
 
     // scrub any dirty words from their name
-    let dirtyNames = [ "FU", "CCV", "FUC", "FUK", "SHT", "ASS", "TIT"];
+    let dirtyNames = [ "FU", "CCV", "FUC", "FUK", "SHT", "ASS", "TIT", "SEX", "CNT", "PUS", "XXX", "SUK", "DIK", "DIC"];
         
     // if the player's name matches anything in our blacklist
     for( let i = 0; i < dirtyNames.length; i++ ) {
