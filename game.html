@@ -68,54 +68,70 @@
         </div>
 
         <div id="leaderboard">
-            <img class="leaderboard-button" onclick="onLeaderboardViewingDone()" src="./assets/images/frontend/btn-done.png" />
-            <div id="leaderboard-scores" class="leaderboard-scores">
+            <img class="leaderboard-button" onclick="hideLeaderboard();" src="./assets/images/frontend/btn-done.png" />
+            <div id="leaderboard-spinner"></div>
+            <div id="leaderboard-try-again"><P>Try Again!</P></div>
+            <div id="leaderboard-scores">
                 <div class="leaderboard-header">
                     <P>SCORES</P>
                 </div>
             </div>
-            <div id="leaderboard-spinner"></div>
         </div>
     </body>
 </html>
 
 <script>
     /*Leaderboard Populating*/
-    function parseScores( ) {
+    function parseScores( result ) {
         
-        var leaderList = $("#leaderboard-scores");
+        $("#leaderboard-spinner").css("visibility", "hidden");
+        
+        if( result === true ) {
+            $("#leaderboard-scores").css("visibility", "visible");
 
-        // hide the loader
-        $("#leaderboard-spinner").css("display", "none");
-        
-        for( var i = 0; i < gLeaderboardScores.length; i++ ) {
+            var leaderList = $("#leaderboard-scores");
             
-            var rowColor = "white";
-            if( i == 0 ) {
-                rowColor = "gold";
-            }
-            else if ( (i % 2) != 0 ) {
-                rowColor = "lightgreen";
-            }
-            else {
-                rowColor = "red";
-            }
+            for( var i = 0; i < Math.min( 99, gLeaderboardScores.length ); i++ ) {
+                
+                var rowColor = "white";
+                if( i == 0 ) {
+                    rowColor = "gold";
+                }
+                else if ( (i % 2) != 0 ) {
+                    rowColor = "lightgreen";
+                }
+                else {
+                    rowColor = "red";
+                }
 
-            leaderList.append( "<div class=\"leaderboard-row score\">" + 
-                                    "<div class=\"num-box\">" +
-                                        "<p style=\"color: " + rowColor + ";\">" + pad((i + 1), 2) + "</p>" + 
-                                    "</div>" +
-                                    "<div class=\"name-box\">" +
-                                        "<p style=\"color: " + rowColor + ";\">" + gLeaderboardScores[i].name + "</p>" +
-                                    "</div>" + 
-                                    "<div class=\"hiscore-box\">" +
-                                    "<p style=\"color: " + rowColor + ";\">" + gLeaderboardScores[i].score + "</p>" + 
-                                    "</div>" +
-                                    "<div class=\"campus-box\">" +
-                                    "<p style=\"color: " + rowColor + ";\">" + gLeaderboardScores[i].campus + "</p>" + 
-                                    "</div>" +
-                                "</div>");
+                leaderList.append( "<div class=\"leaderboard-row score\">" + 
+                                        "<div class=\"num-box\">" +
+                                            "<p style=\"color: " + rowColor + ";\">" + pad((i + 1), 2) + "</p>" + 
+                                        "</div>" +
+                                        "<div class=\"name-box\">" +
+                                            "<p style=\"color: " + rowColor + ";\">" + gLeaderboardScores[i].name + "</p>" +
+                                        "</div>" + 
+                                        "<div class=\"hiscore-box\">" +
+                                        "<p style=\"color: " + rowColor + ";\">" + gLeaderboardScores[i].score + "</p>" + 
+                                        "</div>" +
+                                        "<div class=\"campus-box\">" +
+                                        "<p style=\"color: " + rowColor + ";\">" + gLeaderboardScores[i].campus + "</p>" + 
+                                        "</div>" +
+                                    "</div>");
+            }
         }
+        else {
+            // show try again
+            $("#leaderboard-try-again").css("visibility", "visible");
+        }
+    }
+
+    function hideLeaderboard( ) {
+
+        $("#leaderboard-spinner").css("visibility", "hidden");
+        $("#leaderboard-scores").css("visibility", "hidden");
+
+        onLeaderboardViewingDone();
     }
 
 function pad(num, size) {

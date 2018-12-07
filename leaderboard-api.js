@@ -11,12 +11,15 @@ function getScores( onComplete ) {
         headers: {
             "x-api-key": API_KEY,
         },
-        crossDomain: true
+        crossDomain: true,
+        timeout: 10000, //10 seconds, then we try again
+        error: function() {
+            onComplete(false);
+        }
     })
     .done( function( scores ) {
         gLeaderboardScores = scores.data.items;
-        
-        onComplete();
+        onComplete(true);
     });
 }
 

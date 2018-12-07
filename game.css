@@ -38,8 +38,10 @@ body {
     min-width: 50px;
     min-height: 50px;
         
-    display: hidden;
+    visibility: hidden;
     background-color: white;
+    position: absolute;
+    top: 150px;
 
     animation-name: leaderboard-spinner-anim;
     animation-duration: 2s;
@@ -60,11 +62,22 @@ body {
     transform: rotate(180deg);
 }
 
+#leaderboard-try-again {
+    visibility: hidden;
+
+    font-family: 'Press Start 2P';
+    text-transform: uppercase;
+    color: white;
+    font-size: 32px;
+    position: absolute;
+    top: 150px;
+}
+
 .leaderboard-button {
     padding: 20px;
 }
 
-.leaderboard-scores {
+#leaderboard-scores {
     background-color: #FFFFFF;
     align-self: stretch;
     /* flex-grow: 1; */
@@ -74,6 +87,11 @@ body {
     color: #a7191d;
     font-family: 'Press Start 2P';
     text-transform: uppercase;
+
+    visibility: hidden;
+    overflow-y: scroll;
+
+    height: 70%;
 }
 
 .leaderboard-row, .leaderboard-header {

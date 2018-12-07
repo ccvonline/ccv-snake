@@ -326,7 +326,8 @@ function updateTitle(deltaTime) {
         displayUI( "#leaderboard", true );
         displayUI( "#canvasWrapper", false );
         
-        $("#leaderboard-spinner").css("display", "inline-block");
+        $("#leaderboard-spinner").css("visibility", "visible");
+        $("#leaderboard-scores").css("visibility", "hidden");
 
         getScores( parseScores );
     }
