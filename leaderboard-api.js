@@ -4,9 +4,15 @@ const API_KEY = "gWY9qCh3sq1mW8J5tfzGo3e3KAbAZ1nW3LxfzKsn";
 
 var gLeaderboardScores = null;
 
-function getScores( onComplete ) {
+function getScores( numScores = 0, onComplete ) {
+
+    let serverUrl = SERVER_URL;
+    if( numScores > 0 ) {
+        serverUrl += "?limit=" + numScores;
+    }
+
     $.ajax({
-        url: SERVER_URL,
+        url: serverUrl,
         cache: false,
         headers: {
             "x-api-key": API_KEY,

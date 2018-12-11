@@ -79,13 +79,13 @@
 
 <script>    
     $( document ).ready(function() {
-        getScores( parseScores );
+        getScores( -1, parseScores );
 
         setInterval( function() { refreshScores(); }, 10000 );
     });
 
     function refreshScores() {
-        getScores( parseRefreshedScores );
+        getScores( -1, parseRefreshedScores );
     }
 
     function parseRefreshedScores( ) {

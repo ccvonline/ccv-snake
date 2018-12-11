@@ -16,6 +16,8 @@ const HUD_HEIGHT = 40;
 const GAMEBOARD_WIDTH = GAME_SCREEN_WIDTH;
 const GAMEBOARD_HEIGHT = GAME_SCREEN_HEIGHT - HUD_HEIGHT;
 
+const MAX_NUM_LEADERBOARD_SCORES = 100;
+
 // Game State Constants
 const STATE_SETUP = 'SETUP';
 const STATE_TITLE = 'TITLE';
@@ -64,7 +66,7 @@ let frontendImages = {};
 let snakeDeadImages = {};
 
 let numLoadedImages = 0;
-let totalImages = 36;
+let totalImages = 37;
 
 // Game Play
 let gameVariablesSet = false;
@@ -329,27 +331,34 @@ function updateTitle(deltaTime) {
         $("#leaderboard-spinner").css("visibility", "visible");
         $("#leaderboard-scores").css("visibility", "hidden");
 
-        getScores( parseScores );
+        getScores( MAX_NUM_LEADERBOARD_SCORES, parseScores );
     }
 }
 
 function renderTitle(deltaTime) {
     clearCanvas( menuCTX, menuCanvas );
 
-    let playButtonYOffset = 50;
+    let playButtonYOffset = 110;
     playGameButton.x = ( menuCanvas.width - ( buttonImages['button-play-game'].width / 2.5 ) ) / 2;
     playGameButton.y = ( menuCanvas.height / 2 ) + playButtonYOffset;
     playGameButton.render( );
     menuCTX.drawImage( buttonImages['button-play-game'], ( menuCanvas.width - ( buttonImages['button-play-game'].width / 2.5 ) ) / 2, ( menuCanvas.height / 2) + playButtonYOffset, buttonImages['button-play-game'].width / 2.5, buttonImages['button-play-game'].height / 2.5 );
 
-    let hsButtonYOffset = 120;
+    let hsButtonYOffset = 180;
     viewHSButton.x = ( menuCanvas.width - ( buttonImages['button-view-high-score'].width / 2.5 ) ) / 2;
     viewHSButton.y = ( menuCanvas.height / 2 ) + hsButtonYOffset;
     viewHSButton.render( );
     menuCTX.drawImage( buttonImages['button-view-high-score'], ( menuCanvas.width - ( buttonImages['button-view-high-score'].width / 2.5 ) ) / 2, ( menuCanvas.height / 2 ) + hsButtonYOffset, buttonImages['button-view-high-score'].width / 2.5, buttonImages['button-view-high-score'].height / 2.5 );
 
-    render8bitText( "CCV", 'white', GAMEBOARD_WIDTH / 2, frontendImages['frontend/header'].height + 80, '55px' );
-    render8bitText( "SNAKE", 'white', GAMEBOARD_WIDTH / 2, frontendImages['frontend/header'].height + 150, '55px' );
+    //render8bitText( "CCV", 'white', GAMEBOARD_WIDTH / 2, frontendImages['frontend/header'].height + 80, '55px' );
+    //render8bitText( "SNAKE", 'white', GAMEBOARD_WIDTH / 2, frontendImages['frontend/header'].height + 120, '35px' );
+
+    let titleXOffset = (GAMEBOARD_WIDTH - frontendImages['frontend/ccv-snake-title'].width) / 2;
+    menuCTX.drawImage( frontendImages['frontend/ccv-snake-title'], titleXOffset, frontendImages['frontend/header'].height, frontendImages['frontend/ccv-snake-title'].width, frontendImages['frontend/ccv-snake-title'].height );
+
+    render8bitText( "A THROWBACK TO", 'white', GAMEBOARD_WIDTH / 2, frontendImages['frontend/ccv-snake-title'].height + 140, '16px' );
+    render8bitText( "OLD SCHOOL GAMING", 'white', GAMEBOARD_WIDTH / 2, frontendImages['frontend/ccv-snake-title'].height + 160, '16px' );
+    
 
     menuCTX.drawImage( frontendImages['frontend/header'], 0, 0, frontendImages['frontend/header'].width, frontendImages['frontend/header'].height );
 
@@ -1125,6 +1134,7 @@ function loadImages() {
     // frontend images
     loadImage( frontendImages, 'frontend/header' );
     loadImage( frontendImages, 'frontend/tutorial', '.jpg');
+    loadImage( frontendImages, 'frontend/ccv-snake-title' );
 
     loadImage( snakeDeadImages, 'snake-dead-0' );
 }
