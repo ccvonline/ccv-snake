@@ -836,7 +836,7 @@ function clearGameVariables() {
     // Game Play
     gameVariablesSet = false;
     playTimer = 0;
-    playerScore = null;
+    playerScore = 0;
     gameRound = null;
     snakeUpdateFrequencyScaler = null;
     startTouchMoveX = null;
