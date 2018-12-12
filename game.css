@@ -121,6 +121,7 @@ body {
 .name-box {
     flex-grow: 1;
     display: flex;
+    min-width: 50px;
 }
 
 .hiscore-box {
