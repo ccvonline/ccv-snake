@@ -50,7 +50,7 @@
             <div class="left leaderboard">
                 <div class="leaderboard-row">
                     <div style="margin-left: 25px;" class="num-box">
-                        <p>2</p>
+                        <p>#</p>
                     </div>
                     <div class="name-box">
                         <p>Name</p>
@@ -202,29 +202,30 @@
             refreshInProgress = true;
 
             // get the top 20 scores
-            getScores( 20, function() { 
+            getScores( 20, function(result) { 
+                
+                if( result === true ) {
+                    // now update the hidden leaderboard
+                    var leaderboardLeft = hiddenClassObj.find(".left.leaderboard");
+                    var leaderboardRight = hiddenClassObj.find(".right.leaderboard");
 
-                // now update the hidden leaderboard
-                var leaderboardLeft = hiddenClassObj.find(".left.leaderboard");
-                var leaderboardRight = hiddenClassObj.find(".right.leaderboard");
+                    leaderboardLeft.find(".score").remove( );
+                    leaderboardRight.find(".score").remove( );
 
-                leaderboardLeft.find(".score").remove( );
-                leaderboardRight.find(".score").remove( );
+                    parseScores( 0, 10, leaderboardLeft ); 
+                    parseScores( 10, 10, leaderboardRight );
 
-                parseScores( 0, 10, leaderboardLeft ); 
-                parseScores( 10, 10, leaderboardRight );
+                    // and swap them
+                    let tempClassObj = visibleClassObj;
+                    visibleClassObj = hiddenClassObj;
+                    
+                    hiddenClassObj = tempClassObj;
 
-                // and swap them
+                    visibleClassObj.css( "display", "flex");
+                    hiddenClassObj.css( "display", "none");
+                }
+
                 refreshInProgress = false;
-                
-                let tempClassObj = visibleClassObj;
-                visibleClassObj = hiddenClassObj;
-                
-                hiddenClassObj = tempClassObj;
-
-                visibleClassObj.css( "display", "flex");
-                hiddenClassObj.css( "display", "none");
-
             });
         }
      }

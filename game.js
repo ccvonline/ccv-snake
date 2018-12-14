@@ -71,7 +71,7 @@ let totalImages = 37;
 // Game Play
 let gameVariablesSet = false;
 let playTimer = 0;
-let playerScore = null;
+let playerScore = 0;
 let gameRound = null;
 let snakeUpdateFrequencyScaler = null;
 let detectingSwipe = false;
