@@ -251,8 +251,11 @@ const handlePostRequest = (event)=>{
 
     // and replace it with AAA
     if( invalidName === true ) {
-        content.name = "AAA";
+        sanitizedContentName = "AAA";
     }
+    
+    // now, no matter what happened, take the sanitized name
+    content.name = sanitizedContentName;
     
     // make sure the campus is ONLY one of the following things--otherwise default to Peoria
     //let validCampuses = [ "ANTHEM", "AVONDALE", "CHANDLER", "EAST VALLEY", "MIDTOWN PHX", "NORTH PHX", "PEORIA", "SCOTTSDALE", "SURPRISE"];
