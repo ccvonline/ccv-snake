@@ -232,6 +232,12 @@ body {
     justify-content: space-around;
 }
 
+@media screen and (max-width:320px) {
+    #hiscoreSubmit #input-buttons {
+        margin-bottom: 45px;
+    }
+}
+
 #hiscoreSubmit select, #hiscoreSubmit select:focus {
     /* styling */
     background-color: darkred;

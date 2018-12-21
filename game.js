@@ -7,14 +7,14 @@ const TOUCH_THRESHOLD = 45;
 
 const GAMEPLAY_GRID_SIZE = 20;
 
-const GAME_SCREEN_WIDTH = 360;
-const GAME_SCREEN_HEIGHT = 520;
+let GAME_SCREEN_WIDTH = 360;
+let GAME_SCREEN_HEIGHT = 520;
 
-const HUD_WIDTH = GAME_SCREEN_WIDTH;
-const HUD_HEIGHT = 40;
+let HUD_WIDTH = GAME_SCREEN_WIDTH;
+let HUD_HEIGHT = 40;
 
-const GAMEBOARD_WIDTH = GAME_SCREEN_WIDTH;
-const GAMEBOARD_HEIGHT = GAME_SCREEN_HEIGHT - HUD_HEIGHT;
+let GAMEBOARD_WIDTH = GAME_SCREEN_WIDTH;
+let GAMEBOARD_HEIGHT = GAME_SCREEN_HEIGHT - HUD_HEIGHT;
 
 const MAX_NUM_LEADERBOARD_SCORES = 100;
 
@@ -93,6 +93,9 @@ let foodConsumed = null;
 let hudRound = null;
 let hudScore = null;
 
+// Hack for tiny iPhones
+let usingTinyIphone = false;
+
 // Core Methods
 // ------------
 $( document ).ready(function() {
@@ -140,6 +143,20 @@ function tickSetup(deltaTime) {
 }
 
 function updateSetup(deltaTime) {
+
+    // if we're on an iphone se, just hack baby, hack.
+    if( window.innerWidth === 320 && window.innerHeight === 524 ) {
+        usingTinyIphone = true;
+
+        GAME_SCREEN_WIDTH = 280;
+        GAME_SCREEN_HEIGHT = 420;
+
+        HUD_WIDTH = GAME_SCREEN_WIDTH;
+        HUD_HEIGHT = 40;
+
+        GAMEBOARD_WIDTH = GAME_SCREEN_WIDTH;
+        GAMEBOARD_HEIGHT = GAME_SCREEN_HEIGHT - HUD_HEIGHT;
+    }
 
     // center the gameboard on the screen
     let canvasDiv = document.getElementById('canvasWrapper');
@@ -350,15 +367,13 @@ function renderTitle(deltaTime) {
     viewHSButton.render( );
     menuCTX.drawImage( buttonImages['button-view-high-score'], ( menuCanvas.width - ( buttonImages['button-view-high-score'].width / 2.5 ) ) / 2, ( menuCanvas.height / 2 ) + hsButtonYOffset, buttonImages['button-view-high-score'].width / 2.5, buttonImages['button-view-high-score'].height / 2.5 );
 
-    //render8bitText( "CCV", 'white', GAMEBOARD_WIDTH / 2, frontendImages['frontend/header'].height + 80, '55px' );
-    //render8bitText( "SNAKE", 'white', GAMEBOARD_WIDTH / 2, frontendImages['frontend/header'].height + 120, '35px' );
-
     let titleXOffset = (GAMEBOARD_WIDTH - frontendImages['frontend/ccv-snake-title'].width) / 2;
     menuCTX.drawImage( frontendImages['frontend/ccv-snake-title'], titleXOffset, frontendImages['frontend/header'].height, frontendImages['frontend/ccv-snake-title'].width, frontendImages['frontend/ccv-snake-title'].height );
 
-    render8bitText( "A THROWBACK TO", 'white', GAMEBOARD_WIDTH / 2, frontendImages['frontend/ccv-snake-title'].height + 140, '16px' );
-    render8bitText( "OLD SCHOOL GAMING", 'white', GAMEBOARD_WIDTH / 2, frontendImages['frontend/ccv-snake-title'].height + 160, '16px' );
-    
+    if( usingTinyIphone === false ) {
+        render8bitText( "A THROWBACK TO", 'white', GAMEBOARD_WIDTH / 2, frontendImages['frontend/ccv-snake-title'].height + 140, '16px' );
+        render8bitText( "OLD SCHOOL GAMING", 'white', GAMEBOARD_WIDTH / 2, frontendImages['frontend/ccv-snake-title'].height + 160, '16px' );
+    }
 
     menuCTX.drawImage( frontendImages['frontend/header'], 0, 0, frontendImages['frontend/header'].width, frontendImages['frontend/header'].height );
 
@@ -402,7 +417,15 @@ function renderTutorial(deltaTime) {
     // draw the themed header
     menuCTX.drawImage( frontendImages['frontend/header'], 0, 0, frontendImages['frontend/header'].width, frontendImages['frontend/header'].height );
 
-    menuCTX.drawImage( frontendImages['frontend/tutorial'], 0, 0, frontendImages['frontend/tutorial'].width, frontendImages['frontend/tutorial'].height );
+    // tutorial adjustments hack for tiny iphone
+    if( usingTinyIphone ) {
+        let adjustmentOffset = -10;
+        let adjustmentPerc = .85;
+        menuCTX.drawImage( frontendImages['frontend/tutorial'], adjustmentOffset, adjustmentOffset, frontendImages['frontend/tutorial'].width * adjustmentPerc, frontendImages['frontend/tutorial'].height * adjustmentPerc);
+    }
+    else {
+        menuCTX.drawImage( frontendImages['frontend/tutorial'], 0, 0, frontendImages['frontend/tutorial'].width, frontendImages['frontend/tutorial'].height );
+    }
 
     let tutorialButtonYOffset = GAMEBOARD_HEIGHT;
     tutorialDoneButton.x = ( menuCanvas.width - ( buttonImages['button-play-game'].width / 2.5 ) ) / 2;
@@ -604,7 +627,10 @@ function renderGameover(deltaTime) {
     submitHSButton.render( );
     playAgainButton.render( );
 
-    menuCTX.drawImage( frontendImages['frontend/header'], 0, 0, frontendImages['frontend/header'].width, frontendImages['frontend/header'].height );
+    if( usingTinyIphone === false ) {
+        menuCTX.drawImage( frontendImages['frontend/header'], 0, 0, frontendImages['frontend/header'].width, frontendImages['frontend/header'].height );
+    }
+    
     menuCTX.drawImage( buttonImages['button-submit-score'], ( menuCanvas.width - ( buttonImages['button-submit-score'].width / 2.25 ) ) / 2, ( menuCanvas.height / 2), buttonImages['button-submit-score'].width / 2.25, buttonImages['button-submit-score'].height / 2.25 );
     menuCTX.drawImage( buttonImages['button-play-again'], ( menuCanvas.width - ( buttonImages['button-play-again'].width / 2.25 ) ) / 2, ( menuCanvas.height / 2) + 100, buttonImages['button-play-again'].width / 2.25, buttonImages['button-play-again'].height / 2.25 );
 
