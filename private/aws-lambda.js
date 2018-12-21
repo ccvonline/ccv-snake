@@ -249,9 +249,9 @@ const handlePostRequest = (event)=>{
         }
     }
 
-    // and replace it with AAA
+    // and reject
     if( invalidName === true ) {
-        sanitizedContentName = "AAA";
+        return {'success':true, 'id':0};
     }
     
     // now, no matter what happened, take the sanitized name
