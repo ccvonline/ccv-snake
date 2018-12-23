@@ -115,7 +115,7 @@ body {
 .num-box {
     flex-grow: 1;
     display: flex;
-    max-width: 15%;
+    max-width: 20%;
 }
 
 .name-box {
